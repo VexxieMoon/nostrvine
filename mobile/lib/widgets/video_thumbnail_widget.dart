@@ -235,25 +235,3 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
   }
 }
 
-/// Simple wrapper for backward compatibility with existing code
-class SmartVideoThumbnail extends StatelessWidget {
-  const SmartVideoThumbnail({
-    required this.video,
-    super.key,
-    this.width,
-    this.height,
-    this.fit = BoxFit.cover,
-  });
-  final VideoEvent video;
-  final double? width;
-  final double? height;
-  final BoxFit fit;
-
-  @override
-  Widget build(BuildContext context) => VideoThumbnailWidget(
-        video: video,
-        width: width,
-        height: height,
-        fit: fit,
-      );
-}

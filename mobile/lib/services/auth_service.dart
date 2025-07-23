@@ -615,22 +615,6 @@ class AuthService extends ChangeNotifier {
   }
 
 
-  /// Web authentication is not supported with secure storage
-  /// Use mobile platforms for secure key management
-  @Deprecated('Web authentication not supported in secure mode')
-  Future<void> setWebAuthenticationKey(String publicKeyHex) async {
-    Log.error('Web authentication not supported with secure storage',
-        name: 'AuthService', category: LogCategory.auth);
-
-    _lastError =
-        'Web authentication not supported in secure mode. Please use mobile app for secure key management.';
-    _setAuthState(AuthState.unauthenticated);
-
-    throw const SecureKeyStorageException(
-      'Web platform not supported for secure key storage',
-      code: 'web_not_supported',
-    );
-  }
 
   /// Update authentication state and notify listeners
   void _setAuthState(AuthState newState) {

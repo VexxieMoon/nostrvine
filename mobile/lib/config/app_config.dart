@@ -38,9 +38,6 @@ class AppConfig {
   static String get cloudinaryWebhookUrl => '$backendBaseUrl/v1/media/webhook';
   static String get readyEventsUrl => '$backendBaseUrl/v1/media/ready-events';
 
-  // Legacy endpoints (for backward compatibility)
-  static String get videoMetadataUrl => '$backendBaseUrl/v1/media/metadata';
-  static String get videoListUrl => '$backendBaseUrl/v1/media/list';
 
   // App configuration
   static const String appName = 'OpenVines';
