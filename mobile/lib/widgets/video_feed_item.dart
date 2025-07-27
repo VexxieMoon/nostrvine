@@ -811,8 +811,8 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
                       color: Colors.grey[900],
                     ),
                   ),
-                // Video fills entire screen, cropped to fit (only show when playing)
-                if (_controller!.value.isInitialized && _controller!.value.isPlaying)
+                // Video fills entire screen, cropped to fit (show when ready)
+                if (_controller!.value.isInitialized)
                   FittedBox(
                     fit: BoxFit.cover,
                     child: SizedBox(
@@ -871,8 +871,8 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
                   color: Colors.grey[900],
                 ),
               ),
-            // Video fills entire screen, cropped to fit (only show when playing)
-            if (_controller!.value.isInitialized && _controller!.value.isPlaying)
+            // Video fills entire screen, cropped to fit (show when ready)
+            if (_controller!.value.isInitialized)
               FittedBox(
                 fit: BoxFit.cover, // Cover the entire screen, cropping if necessary
                 child: SizedBox(
