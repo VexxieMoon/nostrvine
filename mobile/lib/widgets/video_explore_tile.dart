@@ -21,11 +21,13 @@ class VideoExploreTile extends ConsumerWidget {
     super.key,
     this.onTap,
     this.onClose,
+    this.showTextOverlay = true,
   });
   final VideoEvent video;
   final bool isActive; // Not used anymore but kept for API compatibility
   final VoidCallback? onTap;
   final VoidCallback? onClose;
+  final bool showTextOverlay;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => GestureDetector(
@@ -53,61 +55,62 @@ class VideoExploreTile extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
 
-                // Video info overlay
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(8),
-                        bottomRight: Radius.circular(8),
+                // Video info overlay - conditionally shown
+                if (showTextOverlay)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(8),
+                          bottomRight: Radius.circular(8),
+                        ),
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.8),
+                            Colors.transparent,
+                          ],
+                        ),
                       ),
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.8),
-                          Colors.transparent,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Username/Creator info
+                          _buildCreatorInfo(ref),
+                          const SizedBox(height: 4),
+                          if (video.title != null) ...[
+                            Text(
+                              video.title!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                          ],
+                          if (video.hashtags.isNotEmpty)
+                            Text(
+                              video.hashtags.map((tag) => '#$tag').join(' '),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                         ],
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Username/Creator info
-                        _buildCreatorInfo(ref),
-                        const SizedBox(height: 4),
-                        if (video.title != null) ...[
-                          Text(
-                            video.title!,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                        ],
-                        if (video.hashtags.isNotEmpty)
-                          Text(
-                            video.hashtags.map((tag) => '#$tag').join(' '),
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                      ],
                     ),
                   ),
-                ),
               ],
             ),
           ),

@@ -873,6 +873,7 @@ class ExploreScreenState extends ConsumerState<ExploreScreen>
                     return VideoExploreTile(
                       video: video,
                       isActive: false, // Never active in grid - feed mode handles playback
+                      showTextOverlay: false, // Popular Now shows clean thumbnails without text
                       onTap: () {
                         debugPrint('🎬 Tapping video ${video.id.substring(0, 8)} with URL: ${video.videoUrl}');
                         _enterFeedMode(videos, index);

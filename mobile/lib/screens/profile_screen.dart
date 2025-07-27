@@ -898,8 +898,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   childAspectRatio: 1,
-                  crossAxisSpacing: 2,
-                  mainAxisSpacing: 2,
+                  crossAxisSpacing: 0,
+                  mainAxisSpacing: 0,
                 ),
                 itemCount: 9, // Show 9 placeholder tiles
                 itemBuilder: (context, index) => ColoredBox(
@@ -1041,11 +1041,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               return false;
             },
             child: GridView.builder(
-              padding: const EdgeInsets.all(2),
+              padding: const EdgeInsets.all(0),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
-                crossAxisSpacing: 2,
-                mainAxisSpacing: 2,
+                crossAxisSpacing: 0,
+                mainAxisSpacing: 0,
                 childAspectRatio:
                     1, // Square aspect ratio for vine-style videos
               ),
@@ -1324,11 +1324,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   .toList();
 
               return GridView.builder(
-                padding: const EdgeInsets.all(2),
+                padding: const EdgeInsets.all(0),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
-                  crossAxisSpacing: 2,
-                  mainAxisSpacing: 2,
+                  crossAxisSpacing: 0,
+                  mainAxisSpacing: 0,
                   childAspectRatio: 1.0, // Square aspect ratio matching video display
                 ),
                 itemCount: videoEvents.length,
@@ -1466,11 +1466,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           }
 
           return GridView.builder(
-            padding: const EdgeInsets.all(2),
+            padding: const EdgeInsets.all(0),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              crossAxisSpacing: 2,
-              mainAxisSpacing: 2,
+              crossAxisSpacing: 0,
+              mainAxisSpacing: 0,
               childAspectRatio: 1.0, // Square aspect ratio matching video display
             ),
             itemCount: userReposts.length,
