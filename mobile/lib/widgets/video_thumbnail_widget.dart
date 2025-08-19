@@ -58,17 +58,17 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
     final videoIdPrefix = widget.video.id.length >= 8 
         ? widget.video.id.substring(0, 8) 
         : widget.video.id;
-    Log.debug(
+    Log.info(
       '🖼️ Loading thumbnail for video $videoIdPrefix...',
       name: 'VideoThumbnailWidget',
       category: LogCategory.ui,
     );
-    Log.debug(
+    Log.info(
       '🖼️ Video thumbnail URL: ${widget.video.thumbnailUrl}',
       name: 'VideoThumbnailWidget',
       category: LogCategory.ui,
     );
-    Log.debug(
+    Log.info(
       '🖼️ Video blurhash: ${widget.video.blurhash}',
       name: 'VideoThumbnailWidget',
       category: LogCategory.ui,

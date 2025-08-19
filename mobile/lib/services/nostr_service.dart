@@ -186,6 +186,8 @@ class NostrService implements INostrService {
     }
     
     final controller = StreamController<Event>.broadcast();
+    // Per-subscription de-duplication to avoid duplicate EVENTs from multiple relays/filters
+    final seenEventIds = <String>{};
     _subscriptions[id] = controller;
     Log.debug('Total active subscriptions: ${_subscriptions.length}', name: 'NostrService', category: LogCategory.relay);
     
@@ -213,6 +215,14 @@ class NostrService implements INostrService {
         Log.debug('Embedded relay returned event for $id', name: 'NostrService', category: LogCategory.relay);
         // Convert embedded relay event to nostr_sdk event
         final event = _convertFromEmbeddedEvent(embeddedEvent);
+        
+        // Drop duplicates for this subscription
+        if (seenEventIds.contains(event.id)) {
+          Log.debug('Dropping duplicate event ${event.id.substring(0, 8)} for $id', name: 'NostrService', category: LogCategory.relay);
+          return;
+        }
+        seenEventIds.add(event.id);
+        
         if (!controller.isClosed) {
           // Debug log for home feed events
           if (id.contains('homeFeed')) {

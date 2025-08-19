@@ -513,6 +513,10 @@ class AnalyticsApiService {
                 name: 'AnalyticsApiService', category: LogCategory.video);
             Log.info('   Event ID: ${video.id}',
                 name: 'AnalyticsApiService', category: LogCategory.video);
+            Log.info('   Thumbnail URL: ${video.thumbnailUrl}',
+                name: 'AnalyticsApiService', category: LogCategory.video);
+            Log.info('   Blurhash: ${video.blurhash}',
+                name: 'AnalyticsApiService', category: LogCategory.video);
             
             if (fetchedVideos.length >= ids.length || fetchedVideos.length >= 10) {
               subscription.cancel();

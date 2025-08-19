@@ -749,11 +749,10 @@ class VideoEvent {
     try {
       final uri = Uri.parse(correctedUrl);
       
-      // For api.openvine.co videos, always use the event ID for thumbnail generation
-      // This ensures consistency across all videos regardless of URL structure
+      // For api.openvine.co videos, use the thumbnail API service with event ID
       if (uri.host.contains('api.openvine.co') || uri.host.contains('apt.openvine.co')) {
-        // Use the event ID directly for thumbnail generation
-        // This works for all OpenVine videos whether they have /media/ID or not
+        // Use the event ID for thumbnail generation, not the media ID
+        // The thumbnail API expects event IDs
         return ThumbnailApiService.getThumbnailUrl(eventId);
       }
       
