@@ -191,28 +191,7 @@ class VideoEventPublisher {
       imetaComponents.add('url ${upload.cdnUrl!}');
       imetaComponents.add('m video/mp4');
 
-      // Add thumbnail to imeta if available (must be a valid HTTP URL)
-      if (upload.thumbnailPath != null && upload.thumbnailPath!.isNotEmpty) {
-        final thumbnailPath = upload.thumbnailPath!;
-        // Only include HTTP/HTTPS URLs, not local file paths
-        if (thumbnailPath.startsWith('http://') || thumbnailPath.startsWith('https://')) {
-          imetaComponents.add('image $thumbnailPath');
-          Log.info('✅ Including thumbnail in imeta: $thumbnailPath',
-              name: 'VideoEventPublisher', category: LogCategory.video);
-        } else {
-          Log.warning('❌ Skipping local thumbnail path (not a URL): $thumbnailPath',
-              name: 'VideoEventPublisher', category: LogCategory.video);
-          Log.warning('Backend may not be returning thumbnail_url field',
-              name: 'VideoEventPublisher', category: LogCategory.video);
-        }
-      } else {
-        Log.warning('❌ No thumbnail available - thumbnailPath is: ${upload.thumbnailPath}',
-            name: 'VideoEventPublisher', category: LogCategory.video);
-        Log.warning('Upload metadata - videoId: ${upload.videoId}, cdnUrl: ${upload.cdnUrl}',
-            name: 'VideoEventPublisher', category: LogCategory.video);
-      }
-
-      // Generate blurhash from local video file
+      // Generate thumbnail and blurhash from local video file
       if (upload.localVideoPath.isNotEmpty) {
         try {
           // Extract thumbnail bytes from the video at 500ms
@@ -220,10 +199,20 @@ class VideoEventPublisher {
               await VideoThumbnailService.extractThumbnailBytes(
             videoPath: upload.localVideoPath,
             timeMs: 500, // Extract thumbnail at 500ms
-            quality: 80,
+            quality: 75, // Medium quality for smaller data URIs
           );
 
           if (thumbnailBytes != null) {
+            // Create base64 data URI for embedded thumbnail
+            final base64Thumbnail = base64.encode(thumbnailBytes);
+            final thumbnailDataUri = 'data:image/jpeg;base64,$base64Thumbnail';
+            final thumbnailSizeKB = (thumbnailBytes.length / 1024).toStringAsFixed(1);
+
+            imetaComponents.add('image $thumbnailDataUri');
+            Log.info('✅ Embedded thumbnail as data URI (${thumbnailSizeKB}KB)',
+                name: 'VideoEventPublisher', category: LogCategory.video);
+
+            // Also generate blurhash for progressive loading
             final blurhash =
                 await BlurhashService.generateBlurhash(thumbnailBytes);
             if (blurhash != null) {
@@ -233,10 +222,27 @@ class VideoEventPublisher {
                   name: 'VideoEventPublisher',
                   category: LogCategory.video);
             }
+          } else {
+            Log.warning('❌ Failed to extract thumbnail from video',
+                name: 'VideoEventPublisher', category: LogCategory.video);
           }
         } catch (e) {
-          Log.warning('Failed to generate blurhash from video: $e',
+          Log.warning('Failed to generate thumbnail/blurhash from video: $e',
               name: 'VideoEventPublisher', category: LogCategory.video);
+        }
+      }
+
+      // Fallback: Use uploaded thumbnail URL if available (e.g. from successful upload)
+      if (upload.thumbnailPath != null && upload.thumbnailPath!.isNotEmpty) {
+        final thumbnailPath = upload.thumbnailPath!;
+        // Only include HTTP/HTTPS URLs as fallback
+        if (thumbnailPath.startsWith('http://') || thumbnailPath.startsWith('https://')) {
+          // Only add if we didn't already embed a thumbnail above
+          if (!imetaComponents.any((c) => c.startsWith('image '))) {
+            imetaComponents.add('image $thumbnailPath');
+            Log.info('✅ Using uploaded thumbnail URL: $thumbnailPath',
+                name: 'VideoEventPublisher', category: LogCategory.video);
+          }
         }
       }
 

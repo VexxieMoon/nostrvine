@@ -504,41 +504,13 @@ class UploadManager {
         },
       );
 
-      // If video upload succeeded, generate and upload thumbnail locally
+      // Thumbnail generation disabled - thumbnails are now embedded as base64 data URIs
+      // in the Nostr event by VideoEventPublisher to avoid upload server dependency
       if (result.success && result.cdnUrl != null) {
-        Log.info('🖼️ Video uploaded successfully, now generating local thumbnail',
+        Log.info('✅ Video uploaded successfully',
             name: 'UploadManager', category: LogCategory.video);
-
-        try {
-          final thumbnailUrl = await _generateAndUploadThumbnail(
-            videoFile: videoFile,
-            nostrPubkey: upload.nostrPubkey,
-            upload: upload,
-          );
-
-          if (thumbnailUrl != null) {
-            Log.info('✅ Local thumbnail uploaded: $thumbnailUrl',
-                name: 'UploadManager', category: LogCategory.video);
-
-            // Update result with thumbnail URL
-            return BlossomUploadResult(
-              success: true,
-              videoId: result.videoId,
-              cdnUrl: result.cdnUrl,
-              thumbnailUrl: thumbnailUrl,
-              gifUrl: result.gifUrl,
-              blurhash: result.blurhash,
-              errorMessage: result.errorMessage,
-            );
-          } else {
-            Log.warning('⚠️ Local thumbnail generation/upload failed, using server thumbnail if available',
-                name: 'UploadManager', category: LogCategory.video);
-          }
-        } catch (e) {
-          Log.warning('⚠️ Local thumbnail upload error (non-fatal): $e',
-              name: 'UploadManager', category: LogCategory.video);
-        }
-
+        Log.info('📸 Thumbnail will be embedded as data URI in Nostr event',
+            name: 'UploadManager', category: LogCategory.video);
         _updateUploadProgress(upload.id, 1.0);
       }
 
