@@ -97,36 +97,27 @@ VideoPlayerController individualVideoController(
   Ref ref,
   VideoControllerParams params,
 ) {
-  // Concurrency/keep-alive policy: keep active video and prewarmed neighbors alive briefly
-  // Keep the provider alive while active/prewarmed, with short grace when transitioning
+  // Concurrency/keep-alive policy: dispose immediately when inactive/not prewarmed
+  // CRITICAL FIX: No grace period to prevent zombie controllers during tab switches
   final link = ref.keepAlive();
-  Timer? dropTimer;
 
   void rescheduleDrop() {
-    dropTimer?.cancel();
     // Re-evaluate current activity/prewarm state at the moment of scheduling
     final currentActiveState = ref.read(activeVideoProvider);
     final isActiveNow = currentActiveState.currentVideoId == params.videoId;
     final isPrewarmedNow = ref.read(prewarmManagerProvider).contains(params.videoId);
 
-    // Give a small grace period before releasing when neither active nor prewarmed
+    // Dispose immediately when inactive/not prewarmed to prevent zombie controllers
     if (!isActiveNow && !isPrewarmedNow) {
-      dropTimer = Timer(const Duration(seconds: 3), () {
-        try {
-          link.close();
-        } catch (_) {}
-      });
+      try {
+        link.close();
+      } catch (_) {}
     }
   }
 
   // React to active/prewarm changes to adjust lifetime
   ref.listen<ActiveVideoState>(activeVideoProvider, (_, __) => rescheduleDrop());
   ref.listen<Set<String>>(prewarmManagerProvider, (_, __) => rescheduleDrop());
-
-  // Ensure timer is cleared on dispose
-  ref.onDispose(() {
-    dropTimer?.cancel();
-  });
 
   Log.info('🎬 Creating VideoPlayerController for video ${params.videoId.length > 8 ? params.videoId.substring(0, 8) : params.videoId}...',
       name: 'IndividualVideoController', category: LogCategory.system);

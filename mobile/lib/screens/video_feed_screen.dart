@@ -89,7 +89,7 @@ class VideoFeedScreen extends ConsumerStatefulWidget {
 }
 
 class _VideoFeedScreenState extends ConsumerState<VideoFeedScreen>
-    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
+    with WidgetsBindingObserver {
   late PageController _pageController;
   int _currentIndex = 0;
   bool _isRefreshing = false; // Track if feed is currently refreshing
@@ -98,9 +98,6 @@ class _VideoFeedScreenState extends ConsumerState<VideoFeedScreen>
   static DateTime? _lastInitTime;
   late final int _instanceId;
   late final DateTime _initTime;
-
-  @override
-  bool get wantKeepAlive => true; // Keep state alive when using IndexedStack
 
   @override
   void initState() {
@@ -359,8 +356,6 @@ class _VideoFeedScreenState extends ConsumerState<VideoFeedScreen>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
-
     _buildCounter++;
     Log.info(
       '🎨 VideoFeedScreen: build() #$_buildCounter (instance #$_instanceId)',

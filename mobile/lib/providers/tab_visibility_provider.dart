@@ -16,6 +16,14 @@ class TabVisibility extends _$TabVisibility {
     // This ensures videos are paused and controllers can be disposed when tabs become inactive
     ref.read(activeVideoProvider.notifier).clearActiveVideo();
 
+    // CRITICAL: Clear prewarm manager to prevent zombie controllers from staying alive
+    // Prewarmed videos should not persist across tab switches
+    try {
+      ref.read(prewarmManagerProvider.notifier).clear();
+    } catch (_) {
+      // Ignore if provider doesn't exist yet
+    }
+
     state = index;
   }
 }

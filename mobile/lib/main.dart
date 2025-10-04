@@ -901,6 +901,7 @@ class MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     // Create screens once - IndexedStack will preserve their state
     // ProfileScreen is created lazily to avoid unnecessary profile stats loading during startup
     // UNLESS we're starting on the profile tab
+    final auth = ref.read(authServiceProvider);
     _screens = [
       VideoFeedScreen(
         key: _feedScreenKey,
@@ -910,7 +911,7 @@ class MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
       ExploreScreen(key: _exploreScreenKey),
       // If starting on profile tab, create it immediately; otherwise use placeholder
       widget.initialTabIndex == 3
-          ? profile.ProfileScreenScrollable(key: ValueKey('profile_${authService.currentPublicKeyHex ?? 'own'}'), profilePubkey: null)
+          ? profile.ProfileScreenScrollable(key: ValueKey('profile_${auth.currentPublicKeyHex ?? 'own'}'), profilePubkey: null)
           : Container(),
     ];
 
