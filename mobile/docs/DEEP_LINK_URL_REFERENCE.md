@@ -1,0 +1,357 @@
+# Deep Link URL Reference
+
+Complete reference of all supported deep link URLs for divine.video. Use this to ensure web app routing matches mobile app deep link handling.
+
+## URL Format
+
+All deep links use the format:
+```
+https://divine.video/{type}/{identifier}[/{index}]
+```
+
+Where:
+- `{type}` = video, profile, hashtag, search
+- `{identifier}` = ID, npub, tag, or search term
+- `{index}` = Optional 0-based video index for feed view
+
+## Supported URLs
+
+### 1. Video Links
+
+Opens a specific video in full-screen player.
+
+**Pattern**: `https://divine.video/video/{videoId}`
+
+**Parameters**:
+- `videoId` (required): 64-character hexadecimal Nostr event ID
+
+**Examples**:
+```
+https://divine.video/video/059fb12899fbab94d2087351d6f03ec15fb0d4266bcb049a0529f86464b84631
+```
+
+**Mobile Behavior**:
+- Fetches video by event ID from Nostr
+- Opens VideoDetailScreen
+- Displays in full-screen video player
+- Shows video metadata, author, reactions
+
+**Web App Should**:
+- Route to `/video/:id`
+- Fetch event from Nostr relay
+- Display video player with same metadata
+
+---
+
+### 2. Profile Links (Grid View)
+
+Opens user profile in grid view showing all videos.
+
+**Pattern**: `https://divine.video/profile/{npub}`
+
+**Parameters**:
+- `npub` (required): Nostr public key in npub1... format OR hex pubkey
+
+**Examples**:
+```
+https://divine.video/profile/npub1abc123...xyz
+https://divine.video/profile/a1b2c3d4e5f6... (hex pubkey also works)
+```
+
+**Mobile Behavior**:
+- Navigates to `/profile/{npub}/0`
+- Opens ProfileScreen
+- Shows grid of user's videos
+- Displays profile info (avatar, name, bio)
+
+**Web App Should**:
+- Route to `/profile/:npub` or `/profile/:npub/0`
+- Fetch user profile (kind 0)
+- Display video grid
+- Support clicking videos to enter feed view
+
+---
+
+### 3. Profile Links (Feed View)
+
+Opens user profile in feed view starting at a specific video.
+
+**Pattern**: `https://divine.video/profile/{npub}/{index}`
+
+**Parameters**:
+- `npub` (required): Nostr public key in npub1... format
+- `index` (required): 0-based video index to start playing
+
+**Examples**:
+```
+https://divine.video/profile/npub1abc.../0   → First video
+https://divine.video/profile/npub1abc.../5   → Sixth video
+https://divine.video/profile/npub1abc.../12  → Thirteenth video
+```
+
+**Mobile Behavior**:
+- Navigates to `/profile/{npub}/{index}`
+- Opens ProfileScreen in feed mode
+- Starts playing video at specified index
+- Enables swipe up/down to navigate videos
+
+**Web App Should**:
+- Route to `/profile/:npub/:index`
+- Load user's videos
+- Start video player at specified index
+- Support arrow keys or swipe for navigation
+
+---
+
+### 4. Hashtag Links (Grid View)
+
+Opens hashtag page in grid view showing all videos with that tag.
+
+**Pattern**: `https://divine.video/hashtag/{tag}`
+
+**Parameters**:
+- `tag` (required): Hashtag without the # symbol
+
+**Examples**:
+```
+https://divine.video/hashtag/nostr
+https://divine.video/hashtag/bitcoin
+https://divine.video/hashtag/memes
+```
+
+**Mobile Behavior**:
+- Navigates to `/hashtag/{tag}`
+- Opens HashtagScreen in grid mode
+- Shows grid of all videos tagged with #{tag}
+- Displays hashtag title and video count
+
+**Web App Should**:
+- Route to `/hashtag/:tag`
+- Query Nostr for videos with #tag
+- Display video grid
+- Show hashtag metadata
+
+---
+
+### 5. Hashtag Links (Feed View)
+
+Opens hashtag page in feed view starting at a specific video.
+
+**Pattern**: `https://divine.video/hashtag/{tag}/{index}`
+
+**Parameters**:
+- `tag` (required): Hashtag without the # symbol
+- `index` (required): 0-based video index to start playing
+
+**Examples**:
+```
+https://divine.video/hashtag/nostr/0    → First #nostr video
+https://divine.video/hashtag/bitcoin/3  → Fourth #bitcoin video
+https://divine.video/hashtag/memes/10   → Eleventh #memes video
+```
+
+**Mobile Behavior**:
+- Navigates to `/hashtag/{tag}/{index}`
+- Opens HashtagScreen in feed mode
+- Starts playing video at specified index
+- Filters videos by hashtag
+
+**Web App Should**:
+- Route to `/hashtag/:tag/:index`
+- Load videos with #tag
+- Start player at specified index
+- Enable video navigation
+
+---
+
+### 6. Search Links (Grid View)
+
+Opens search results in grid view for a search term.
+
+**Pattern**: `https://divine.video/search/{term}`
+
+**Parameters**:
+- `term` (required): URL-encoded search term
+
+**Examples**:
+```
+https://divine.video/search/bitcoin
+https://divine.video/search/nostr%20tutorial   → "nostr tutorial"
+https://divine.video/search/web3
+```
+
+**Mobile Behavior**:
+- Navigates to `/search/{term}`
+- Opens SearchScreen in grid mode
+- Shows grid of search results
+- Searches video titles, descriptions, tags
+
+**Web App Should**:
+- Route to `/search/:term`
+- Decode URL-encoded term
+- Search Nostr events
+- Display results grid
+
+---
+
+### 7. Search Links (Feed View)
+
+Opens search results in feed view starting at a specific video.
+
+**Pattern**: `https://divine.video/search/{term}/{index}`
+
+**Parameters**:
+- `term` (required): URL-encoded search term
+- `index` (required): 0-based video index in results
+
+**Examples**:
+```
+https://divine.video/search/bitcoin/0   → First result for "bitcoin"
+https://divine.video/search/nostr/5     → Sixth result for "nostr"
+```
+
+**Mobile Behavior**:
+- Navigates to `/search/{term}/{index}`
+- Opens SearchScreen in feed mode
+- Starts playing result at specified index
+
+**Web App Should**:
+- Route to `/search/:term/:index`
+- Load search results
+- Start player at index
+- Navigate through results
+
+---
+
+## URL Patterns Summary
+
+| URL Pattern | View | Mobile Route | Purpose |
+|-------------|------|--------------|---------|
+| `/video/{id}` | Player | `/video/{id}` | Play specific video |
+| `/profile/{npub}` | Grid | `/profile/{npub}/0` | User's videos (grid) |
+| `/profile/{npub}/{i}` | Feed | `/profile/{npub}/{i}` | User's videos (feed) |
+| `/hashtag/{tag}` | Grid | `/hashtag/{tag}` | Tagged videos (grid) |
+| `/hashtag/{tag}/{i}` | Feed | `/hashtag/{tag}/{i}` | Tagged videos (feed) |
+| `/search/{term}` | Grid | `/search/{term}` | Search results (grid) |
+| `/search/{term}/{i}` | Feed | `/search/{term}/{i}` | Search results (feed) |
+
+## Special Characters in URLs
+
+### Hashtags
+- Always **without** the `#` symbol
+- Example: `#nostr` → `/hashtag/nostr`
+- Lowercase recommended but not required
+
+### Search Terms
+- **URL-encode** spaces and special characters
+- Space → `%20`
+- Example: "nostr tutorial" → `/search/nostr%20tutorial`
+
+### Profile IDs
+- Accept both **npub** and **hex** formats
+- npub: `npub1abc...xyz` (Bech32 encoded)
+- hex: `a1b2c3d4e5f6...` (64-char hex string)
+
+### Video IDs
+- Must be 64-character hexadecimal
+- Nostr event ID format
+- Example: `059fb12899fbab94d2087351d6f03ec15fb0d4266bcb049a0529f86464b84631`
+
+## Navigation Behavior
+
+### Grid to Feed Transition
+When user clicks a video in grid view:
+- Grid: `/hashtag/nostr`
+- Clicks 5th video (index 4)
+- Navigates to: `/hashtag/nostr/4`
+
+### Feed Navigation
+User swipes/scrolls through feed:
+- Starts at: `/hashtag/nostr/4`
+- Swipes to next video
+- URL updates to: `/hashtag/nostr/5`
+
+### URL Sharing
+Any feed URL can be shared:
+- Current URL: `/search/bitcoin/12`
+- User shares link
+- Recipient opens at same video (index 12)
+
+## Testing URLs
+
+### Real Working Examples
+
+**Video**:
+```
+https://divine.video/video/059fb12899fbab94d2087351d6f03ec15fb0d4266bcb049a0529f86464b84631
+```
+
+**Profile** (replace with real npub):
+```
+https://divine.video/profile/npub1...
+https://divine.video/profile/npub1.../0
+```
+
+**Hashtag**:
+```
+https://divine.video/hashtag/nostr
+https://divine.video/hashtag/nostr/0
+```
+
+**Search**:
+```
+https://divine.video/search/bitcoin
+https://divine.video/search/bitcoin/0
+```
+
+## Server Configuration Required
+
+For deep links to work, these files must be accessible:
+
+### iOS Universal Links
+**File**: `/.well-known/apple-app-site-association`
+**Content-Type**: `application/json`
+**Paths**: All patterns listed above
+
+### Android App Links
+**File**: `/.well-known/assetlinks.json`
+**Content-Type**: `application/json`
+**Package**: `co.openvine.app`
+
+## Web App Implementation Checklist
+
+- [ ] Route handlers for all 7 URL patterns
+- [ ] Video player component
+- [ ] Grid view component
+- [ ] Feed view component with navigation
+- [ ] Profile page with both views
+- [ ] Hashtag page with both views
+- [ ] Search page with both views
+- [ ] URL encoding/decoding for search terms
+- [ ] npub/hex conversion for profiles
+- [ ] Index parameter handling
+- [ ] Video navigation (next/previous)
+- [ ] URL updates on navigation
+- [ ] Share button generates correct URLs
+- [ ] SEO meta tags for each URL type
+- [ ] Open Graph tags for social sharing
+
+## Notes for Web Developers
+
+1. **URL Format Must Match Exactly**: Mobile app expects exact format. Don't add extra parameters or change structure.
+
+2. **Index is 0-Based**: First video = index 0, not index 1.
+
+3. **Grid vs Feed**:
+   - Grid = thumbnail grid, 2-segment URL
+   - Feed = full-screen player, 3-segment URL
+
+4. **URL Encoding**: Always URL-encode search terms but NOT hashtags or npubs.
+
+5. **Case Sensitivity**: Hashtags and search terms are case-insensitive. Profile IDs and video IDs are case-sensitive (hex).
+
+6. **Invalid Index**: If index > video count, show last video or return to grid.
+
+7. **Missing Video**: If video ID doesn't exist, show error page with link to home.
+
+8. **SEO**: Each URL should have unique title, description, and OG image for sharing.
