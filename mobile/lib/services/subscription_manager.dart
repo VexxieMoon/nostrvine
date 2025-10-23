@@ -93,6 +93,7 @@ class SubscriptionManager {
   /// Filter out cached data from subscription filters
   /// Returns filtered filters list (may be empty if all data is cached)
   /// Handles both event ID filtering and profile author filtering
+  /// Optimizes limits to ≤100 for better relay performance
   List<Filter> _filterCachedData(
       List<Filter> filters, Function(Event) onEvent) {
     final filteredFilters = <Filter>[];
@@ -127,11 +128,15 @@ class SubscriptionManager {
         if (missingIds.isEmpty) {
           continue; // Skip this filter entirely - all events cached
         }
+
+        // Optimize limit to ≤100 for better relay performance
+        final optimizedLimit = filter.limit != null && filter.limit! > 100 ? 100 : filter.limit;
+
         modifiedFilter = Filter(
           ids: missingIds,
           kinds: filter.kinds,
           authors: filter.authors,
-          limit: filter.limit,
+          limit: optimizedLimit,
           since: filter.since,
           until: filter.until,
           search: filter.search,
@@ -167,14 +172,33 @@ class SubscriptionManager {
         if (missingAuthors.isEmpty) {
           continue; // Skip this filter entirely - all profiles cached
         }
+
+        // Optimize limit to ≤100 for better relay performance
+        final optimizedLimit = filter.limit != null && filter.limit! > 100 ? 100 : filter.limit;
+
         modifiedFilter = Filter(
           ids: modifiedFilter?.ids,
           kinds: filter.kinds,
           authors: missingAuthors,
-          limit: filter.limit,
+          limit: optimizedLimit,
           since: filter.since,
           until: filter.until,
           search: filter.search,
+        );
+      }
+
+      // If no modifications were made, optimize the limit on the original filter
+      if (modifiedFilter == null && filter.limit != null && filter.limit! > 100) {
+        modifiedFilter = Filter(
+          ids: filter.ids,
+          kinds: filter.kinds,
+          authors: filter.authors,
+          limit: 100,
+          since: filter.since,
+          until: filter.until,
+          search: filter.search,
+          t: filter.t,
+          h: filter.h,
         );
       }
 

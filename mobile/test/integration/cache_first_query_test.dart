@@ -422,6 +422,7 @@ void main() {
       expect(receivedEvents.length, 2);
       expect(receivedEvents, containsAll([toHex64('cached1'), toHex64('cached2')]));
 
+
       // But EOSE should NOT have been called yet (100ms delay)
       expect(mockNostrService.eoseCalled, false);
 
