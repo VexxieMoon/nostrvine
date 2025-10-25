@@ -13,11 +13,11 @@ import 'nostr_service_factory_mobile.dart'
 /// Factory class for creating platform-appropriate NostrService implementations
 class NostrServiceFactory {
   /// Create the appropriate NostrService for the current platform
-  static INostrService create(NostrKeyManager keyManager) {
+  static INostrService create(NostrKeyManager keyManager, {void Function()? onInitialized}) {
     // Use platform-specific factory function
     UnifiedLogger.info('Creating platform-appropriate NostrService',
         name: 'NostrServiceFactory');
-    return createEmbeddedRelayService(keyManager);
+    return createEmbeddedRelayService(keyManager, onInitialized: onInitialized);
   }
 
   /// Initialize the created service with appropriate parameters

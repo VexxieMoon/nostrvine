@@ -83,7 +83,7 @@ void main() {
       expect(ready, isTrue, reason: 'Should be ready when initialized');
     });
 
-    test('notifies listeners when initialization state changes', () {
+    test('notifies listeners when initialization state changes', () async {
       // Arrange
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -101,6 +101,9 @@ void main() {
       container
           .read(nostrInitializationProvider.notifier)
           .markInitialized();
+
+      // Wait for any microtasks to complete
+      await Future.delayed(Duration.zero);
 
       // Assert
       expect(readyStates, [true],

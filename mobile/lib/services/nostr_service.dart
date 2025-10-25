@@ -22,7 +22,10 @@ import 'package:openvine/utils/log_batcher.dart';
 /// Production implementation of NostrService using EmbeddedNostrRelay directly
 /// Manages external relay connections and provides unified API to the app
 class NostrService implements INostrService {
-  NostrService(this._keyManager, {embedded.EmbeddedNostrRelay? embeddedRelay}) {
+  NostrService(this._keyManager, {
+    embedded.EmbeddedNostrRelay? embeddedRelay,
+    void Function()? onInitialized,
+  }) : _onInitialized = onInitialized {
     // Allow injecting an embedded relay for testing
     if (embeddedRelay != null) {
       _embeddedRelay = embeddedRelay;
@@ -30,6 +33,7 @@ class NostrService implements INostrService {
   }
 
   final NostrKeyManager _keyManager;
+  final void Function()? _onInitialized;
   final Map<String, StreamController<Event>> _subscriptions = {};
   final Map<String, bool> _relayAuthStates = {};
   final _authStateController = StreamController<Map<String, bool>>.broadcast();
@@ -168,6 +172,7 @@ class NostrService implements INostrService {
       }
 
       _isInitialized = true;
+      _onInitialized?.call(); // Notify that initialization is complete
       Log.info(
           'Initialization complete with ${_configuredRelays.length} external relays',
           name: 'NostrService',
@@ -186,6 +191,7 @@ class NostrService implements INostrService {
 
       // Mark as partially initialized to allow app to continue
       _isInitialized = true; // Allow app to continue even with failures
+      _onInitialized?.call(); // Notify that initialization is complete (even if partial)
 
       // Don't throw error - let app continue with limited functionality
       Log.warning(

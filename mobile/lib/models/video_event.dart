@@ -3,6 +3,7 @@
 
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
 import 'package:nostr_sdk/event.dart';
 import 'package:openvine/services/thumbnail_api_service.dart';
 import 'package:openvine/constants/nip71_migration.dart';

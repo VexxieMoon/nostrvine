@@ -173,11 +173,20 @@ VideoPlayerController individualVideoController(
   }
 
   // Initialize the controller (async in background)
-  // Timeout set to 30 seconds to accommodate slow connections
+  // Timeout depends on video format:
+  // - HLS (.m3u8): 60 seconds - needs to download manifest + buffer segments
+  // - Direct MP4: 30 seconds - single file download
   // Previous 15-second timeout was too aggressive for cellular/slow networks
+  final isHls = params.videoUrl.toLowerCase().contains('.m3u8') ||
+                params.videoUrl.toLowerCase().contains('hls');
+  final timeoutDuration = isHls ? const Duration(seconds: 60) : const Duration(seconds: 30);
+  final formatType = isHls ? 'HLS' : 'MP4';
+
   final initFuture = controller.initialize().timeout(
-    const Duration(seconds: 30),
-    onTimeout: () => throw TimeoutException('Video initialization timed out after 30 seconds'),
+    timeoutDuration,
+    onTimeout: () => throw TimeoutException(
+      'Video initialization timed out after ${timeoutDuration.inSeconds} seconds ($formatType format)'
+    ),
   );
 
   initFuture.then((_) {
