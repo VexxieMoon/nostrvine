@@ -112,7 +112,7 @@ void main() async {
           ),
         );
 
-        await tester.pump();
+        await tester.pumpAndSettle();
 
         // Test that onScreenHidden method exists and can be called successfully
         final state = key.currentState;
@@ -143,7 +143,7 @@ void main() async {
           ),
         );
 
-        await tester.pump();
+        await tester.pumpAndSettle();
 
         // Test that onScreenVisible method exists and can be called successfully
         final state = key.currentState;
@@ -174,7 +174,7 @@ void main() async {
           ),
         );
 
-        await tester.pump();
+        await tester.pumpAndSettle();
 
         // Test that exitFeedMode method exists and can be called successfully
         final state = key.currentState;
@@ -205,7 +205,7 @@ void main() async {
           ),
         );
 
-        await tester.pump();
+        await tester.pumpAndSettle();
 
         // Test that showHashtagVideos method exists and can be called successfully
         final state = key.currentState;
@@ -236,7 +236,7 @@ void main() async {
           ),
         );
 
-        await tester.pump();
+        await tester.pumpAndSettle();
 
         // Test that isInFeedMode getter exists and returns correct boolean value
         final state = key.currentState;
@@ -267,7 +267,7 @@ void main() async {
           ),
         );
 
-        await tester.pump();
+        await tester.pumpAndSettle();
 
         // Test that playSpecificVideo method exists with the signature main.dart expects
         final state = key.currentState;

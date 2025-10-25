@@ -332,10 +332,11 @@ void main() {
         // Verify subscription was created
         verify(mockNostrService.subscribeToEvents(
           filters: argThat(
-            predicate<List<Filter>>((filters) =>
-                filters.isNotEmpty &&
-                filters[0].kinds != null &&
-                filters[0].kinds!.contains(30005)),
+            predicate<List<Filter>>((filters) {
+              if (filters.isEmpty) return false;
+              final kinds = filters[0].kinds;
+              return kinds != null && kinds.contains(30005);
+            }),
             named: 'filters',
           ),
         )).called(1);
