@@ -58,7 +58,6 @@ void main() {
           userProfileProvider.overrideWith(() => mockNotifier),
         ],
       );
-      addTearDown(container.dispose);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -83,6 +82,8 @@ void main() {
       // Flush any pending post-frame callbacks
       await tester.pump();
       await tester.pump();
+
+      container.dispose();
     });
 
     testWidgets('URL /home/1 renders second video', (tester) async {
@@ -95,7 +96,6 @@ void main() {
           userProfileProvider.overrideWith(() => mockNotifier),
         ],
       );
-      addTearDown(container.dispose);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -120,6 +120,8 @@ void main() {
       // Flush any pending post-frame callbacks
       await tester.pump();
       await tester.pump();
+
+      container.dispose();
     });
 
     testWidgets('changing URL updates PageView', (tester) async {
@@ -132,7 +134,6 @@ void main() {
           userProfileProvider.overrideWith(() => mockNotifier),
         ],
       );
-      addTearDown(container.dispose);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -158,6 +159,8 @@ void main() {
       // Flush any pending post-frame callbacks
       await tester.pump();
       await tester.pump();
+
+      container.dispose();
     });
 
     testWidgets('no provider mutations in widget lifecycle', (tester) async {
@@ -173,7 +176,6 @@ void main() {
           userProfileProvider.overrideWith(() => mockNotifier),
         ],
       );
-      addTearDown(container.dispose);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -197,6 +199,8 @@ void main() {
 
       // If we get here without errors, lifecycle is clean
       expect(true, isTrue);
+
+      container.dispose();
     });
 
     testWidgets('empty state shown when no videos', (tester) async {
@@ -205,7 +209,6 @@ void main() {
           homeFeedProvider.overrideWith(() => HomeFeedMock([])),
         ],
       );
-      addTearDown(container.dispose);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -226,6 +229,8 @@ void main() {
       // Verify empty state is shown (inline widget, no specific type)
       expect(find.text('No videos available'), findsOneWidget);
       expect(find.text('Follow some creators to see their videos here'), findsOneWidget);
+
+      container.dispose();
     });
 
     testWidgets('pull-to-refresh triggers refresh', (tester) async {
@@ -238,7 +243,6 @@ void main() {
           userProfileProvider.overrideWith(() => mockNotifier),
         ],
       );
-      addTearDown(container.dispose);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -266,6 +270,8 @@ void main() {
       // Flush any pending post-frame callbacks
       await tester.pump();
       await tester.pump();
+
+      container.dispose();
     });
 
     testWidgets('prefetches profiles around current index', (tester) async {
@@ -283,7 +289,6 @@ void main() {
           userProfileProvider.overrideWith(() => mockNotifier),
         ],
       );
-      addTearDown(container.dispose);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -301,6 +306,8 @@ void main() {
       // Should prefetch profiles for index 0 and 2 (±1 from current)
       expect(prefetchedPubkeys, containsAll(['pubkey-1', 'pubkey-3']));
       expect(prefetchedPubkeys, isNot(contains('pubkey-2'))); // current, not prefetch
+
+      container.dispose();
     });
   });
 }

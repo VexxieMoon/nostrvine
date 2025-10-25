@@ -58,14 +58,12 @@ void main() {
           seenVideosProvider.overrideWith(() => SeenVideosNotifier()),
         ],
       );
-      addTearDown(container.dispose);
 
       // Act - Subscribe to provider
       final listener = container.listen(
         videoEventsProvider,
         (prev, next) {},
       );
-      addTearDown(listener.close);
 
       // Allow async processing
       await pumpEventQueue();
@@ -73,6 +71,9 @@ void main() {
       // Assert - Verify listener was attached (remove-then-add pattern)
       verify(mockVideoEventService.removeListener(any)).called(greaterThanOrEqualTo(1));
       verify(mockVideoEventService.addListener(any)).called(greaterThanOrEqualTo(1));
+
+      listener.close();
+      container.dispose();
     });
 
     test('should subscribe to discovery videos', () async {
@@ -90,19 +91,20 @@ void main() {
           seenVideosProvider.overrideWith(() => SeenVideosNotifier()),
         ],
       );
-      addTearDown(container.dispose);
 
       // Act
       final listener = container.listen(
         videoEventsProvider,
         (prev, next) {},
       );
-      addTearDown(listener.close);
 
       await pumpEventQueue();
 
       // Assert
       verify(mockVideoEventService.subscribeToDiscovery(limit: 100)).called(1);
+
+      listener.close();
+      container.dispose();
     });
 
     test('should emit existing videos from service', () async {
@@ -144,7 +146,6 @@ void main() {
           seenVideosProvider.overrideWith(() => SeenVideosNotifier()),
         ],
       );
-      addTearDown(container.dispose);
 
       // Act
       final states = <AsyncValue<List<VideoEvent>>>[];
@@ -155,13 +156,15 @@ void main() {
         },
         fireImmediately: true,
       );
-      addTearDown(listener.close);
 
       await pumpEventQueue();
 
       // Assert - Should emit videos
       expect(states.any((s) => s.hasValue && s.value!.length == 2), isTrue,
           reason: 'Should emit 2 videos from service');
+
+      listener.close();
+      container.dispose();
     });
 
     test('should cleanup listener on dispose', () async {
@@ -210,14 +213,12 @@ void main() {
           seenVideosProvider.overrideWith(() => SeenVideosNotifier()),
         ],
       );
-      addTearDown(container.dispose);
 
       // Act
       final listener = container.listen(
         videoEventsProvider,
         (prev, next) {},
       );
-      addTearDown(listener.close);
 
       await pumpEventQueue();
 
@@ -227,6 +228,9 @@ void main() {
 
       expect(allCalls.isNotEmpty, isTrue, reason: 'Should call removeListener');
       expect(allAdds.isNotEmpty, isTrue, reason: 'Should call addListener');
+
+      listener.close();
+      container.dispose();
     });
   });
 }

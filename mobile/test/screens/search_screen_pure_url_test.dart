@@ -40,7 +40,6 @@ void main() {
           videoEventServiceProvider.overrideWithValue(mockVideoEventService),
         ],
       );
-      addTearDown(container.dispose);
 
       // Build widget tree with router
       await tester.pumpWidget(
@@ -68,6 +67,8 @@ void main() {
       final pageContext = container.read(pageContextProvider);
       expect(pageContext.value?.type, RouteType.search);
       expect(pageContext.value?.searchTerm, 'nostr');
+
+      container.dispose();
     });
 
     testWidgets('automatically triggers search when search term is in URL', (tester) async {
@@ -77,7 +78,6 @@ void main() {
           videoEventServiceProvider.overrideWithValue(mockVideoEventService),
         ],
       );
-      addTearDown(container.dispose);
 
       // Build widget tree with router
       await tester.pumpWidget(
@@ -99,6 +99,8 @@ void main() {
 
       // Assert: Search should be triggered with 'bitcoin'
       verify(mockVideoEventService.searchVideos('bitcoin', limit: anyNamed('limit'))).called(greaterThan(0));
+
+      container.dispose();
     });
 
     testWidgets('shows empty state when search term is null', (tester) async {
@@ -108,7 +110,6 @@ void main() {
           videoEventServiceProvider.overrideWithValue(mockVideoEventService),
         ],
       );
-      addTearDown(container.dispose);
 
       // Build widget tree with router
       await tester.pumpWidget(
@@ -130,6 +131,8 @@ void main() {
 
       // Assert: Search should NOT be triggered
       verifyNever(mockVideoEventService.searchVideos(any, limit: anyNamed('limit')));
+
+      container.dispose();
     });
 
     testWidgets('updates search when URL changes', (tester) async {
@@ -139,7 +142,6 @@ void main() {
           videoEventServiceProvider.overrideWithValue(mockVideoEventService),
         ],
       );
-      addTearDown(container.dispose);
 
       // Build widget tree with router
       await tester.pumpWidget(
@@ -182,6 +184,8 @@ void main() {
 
       // Assert: New search should be triggered with 'bitcoin'
       verify(mockVideoEventService.searchVideos('bitcoin', limit: anyNamed('limit'))).called(greaterThan(0));
+
+      container.dispose();
     });
   });
 }

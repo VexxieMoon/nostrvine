@@ -111,11 +111,10 @@ class HomeFeed extends _$HomeFeed {
 
     Log.info('🏠 HomeFeed: BUILD #$buildId watching socialProvider...', name: 'HomeFeedProvider', category: LogCategory.video);
 
-    // Watch social provider to get following list
-    // Eliminates double-watch anti-pattern - removed ref.listen() that was causing duplicate invalidations
-    // Now rebuilds ONCE per social state change instead of twice
-    final socialData = ref.watch(social.socialProvider);
-    final followingPubkeys = socialData.followingPubkeys;
+    // Watch ONLY the following pubkeys, not the entire social state
+    // This prevents rebuilds when social provider state changes (e.g., initialization)
+    // Only rebuild when the actual following list changes
+    final followingPubkeys = ref.watch(social.socialProvider.select((state) => state.followingPubkeys));
 
     Log.info(
       '🏠 HomeFeed: BUILD #$buildId - User is following ${followingPubkeys.length} people',

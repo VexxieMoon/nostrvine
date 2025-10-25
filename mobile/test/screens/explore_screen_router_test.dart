@@ -52,7 +52,6 @@ void main() {
           videoEventsProvider.overrideWith(() => VideoEventsMock(mockVideos)),
         ],
       );
-      addTearDown(container.dispose);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -73,6 +72,8 @@ void main() {
       // Verify first video is shown
       expect(find.text('Video 1/3'), findsOneWidget);
       expect(find.text('ID: video-1'), findsOneWidget);
+
+      container.dispose();
     });
 
     testWidgets('URL /explore/1 renders second video', (tester) async {
@@ -81,7 +82,6 @@ void main() {
           videoEventsProvider.overrideWith(() => VideoEventsMock(mockVideos)),
         ],
       );
-      addTearDown(container.dispose);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -102,6 +102,8 @@ void main() {
       // Verify second video is shown
       expect(find.text('Video 2/3'), findsOneWidget);
       expect(find.text('ID: video-2'), findsOneWidget);
+
+      container.dispose();
     });
 
     testWidgets('swiping PageView updates URL', (tester) async {
@@ -116,7 +118,6 @@ void main() {
           videoEventsProvider.overrideWith(() => VideoEventsMock(mockVideos)),
         ],
       );
-      addTearDown(container.dispose);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -138,6 +139,8 @@ void main() {
       // Verify PageView shows video 3
       expect(find.text('Video 3/3'), findsOneWidget);
       expect(find.text('ID: video-3'), findsOneWidget);
+
+      container.dispose();
     });
 
     testWidgets('no provider mutations in widget lifecycle', (tester) async {
@@ -149,7 +152,6 @@ void main() {
           videoEventsProvider.overrideWith(() => VideoEventsMock(mockVideos)),
         ],
       );
-      addTearDown(container.dispose);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -169,6 +171,8 @@ void main() {
 
       // If we get here without errors, lifecycle is clean
       expect(true, isTrue);
+
+      container.dispose();
     });
   });
 }

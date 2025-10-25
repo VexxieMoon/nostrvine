@@ -67,7 +67,6 @@ void main() {
           analyticsApiServiceProvider.overrideWithValue(mockAnalyticsApiService),
         ],
       );
-      addTearDown(container.dispose);
 
       // ACT: Read initial state (should be empty)
       final initialState = container.read(curationProvider);
@@ -107,6 +106,8 @@ void main() {
         reason:
             'Should have videos after refreshAll() picks up cache',
       );
+
+      container.dispose();
     });
 
     test(
@@ -146,7 +147,6 @@ void main() {
           analyticsApiServiceProvider.overrideWithValue(mockAnalyticsApiService),
         ],
       );
-      addTearDown(container.dispose);
 
       // ACT: Read initial state (empty)
       final initialState = container.read(curationProvider);
@@ -171,6 +171,8 @@ void main() {
         equals(editorVideos.length),
         reason: 'Videos visible after tab return and refresh',
       );
+
+      container.dispose();
     });
   });
 }

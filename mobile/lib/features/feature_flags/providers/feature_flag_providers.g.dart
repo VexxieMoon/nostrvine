@@ -216,7 +216,7 @@ final class FeatureFlagStateProvider
   }
 }
 
-String _$featureFlagStateHash() => r'47719db282465c7229d72b8ab05761246937d6be';
+String _$featureFlagStateHash() => r'bf39490bff4b6cb74fd70fff0c499635669fef8d';
 
 /// Individual feature flag check provider family
 

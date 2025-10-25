@@ -11,7 +11,6 @@ void main() {
   group('HomeFeed Double-Watch Fix', () {
     test('HomeFeed rebuilds only once when social state changes', () async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
 
       int buildCount = 0;
 
@@ -39,6 +38,8 @@ void main() {
       // but the key is that it shouldn't rebuild TWICE for a single social state change
       expect(buildCount, lessThanOrEqualTo(2),
           reason: 'HomeFeed should not rebuild multiple times for single social state change');
+
+      container.dispose();
     });
 
     test('HomeFeed does not use ref.listen on socialProvider', () async {
@@ -58,7 +59,6 @@ void main() {
 
     test('HomeFeed correctly watches social provider state', () async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
 
       // Set up social state with following list
       final socialNotifier = container.read(social.socialProvider.notifier);
@@ -73,11 +73,12 @@ void main() {
 
       // The provider should be watching this state
       // (verified by the fact that it compiles and runs)
+
+      container.dispose();
     });
 
     test('HomeFeed rebuilds when following list changes', () async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
 
       final socialNotifier = container.read(social.socialProvider.notifier);
 
@@ -107,11 +108,12 @@ void main() {
       // The important part is verifying it doesn't rebuild TWICE
       expect(rebuildCount, greaterThanOrEqualTo(0),
           reason: 'HomeFeed rebuild count tracked (may be 0 due to async timing)');
+
+      container.dispose();
     });
 
     test('HomeFeed does not rebuild when unrelated social state changes', () async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
 
       final socialNotifier = container.read(social.socialProvider.notifier);
 
@@ -139,6 +141,8 @@ void main() {
       // rebuild TWICE due to double-watch.
       expect(rebuildCount, lessThanOrEqualTo(1),
           reason: 'HomeFeed should rebuild at most once for social state change');
+
+      container.dispose();
     });
   });
 }
