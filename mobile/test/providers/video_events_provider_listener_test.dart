@@ -22,6 +22,24 @@ import 'package:openvine/state/seen_videos_state.dart';
 
 import 'video_events_provider_listener_test.mocks.dart';
 
+class _FakeAppForeground extends AppForeground {
+  final bool _isForeground;
+
+  _FakeAppForeground(this._isForeground);
+
+  @override
+  bool build() => _isForeground;
+}
+
+class _FakeSeenVideosNotifier extends SeenVideosNotifier {
+  final SeenVideosState _state;
+
+  _FakeSeenVideosNotifier(this._state);
+
+  @override
+  SeenVideosState build() => _state;
+}
+
 @GenerateMocks([VideoEventService, INostrService])
 void main() {
   group('VideoEvents Provider - Listener Attachment', () {
@@ -42,7 +60,7 @@ void main() {
       container = ProviderContainer(
         overrides: [
           // Override app readiness gates
-          appForegroundProvider.overrideWith((ref) => Stream.value(true)),
+          appForegroundProvider.overrideWith(() => _FakeAppForeground(true)),
           nostrServiceProvider.overrideWithValue(mockNostrService),
 
           // Override VideoEventService
@@ -56,7 +74,7 @@ void main() {
           }),
 
           // Override seen videos provider
-          seenVideosProvider.overrideWith((ref) => SeenVideosNotifier()),
+          seenVideosProvider.overrideWith(() => _FakeSeenVideosNotifier(SeenVideosState.initial)),
         ],
       );
     });
@@ -85,7 +103,7 @@ void main() {
       // Arrange - Start with gates not satisfied
       final testContainer = ProviderContainer(
         overrides: [
-          appForegroundProvider.overrideWith((ref) => Stream.value(false)), // NOT ready initially
+          appForegroundProvider.overrideWith(() => _FakeAppForeground(false)), // NOT ready initially
           nostrServiceProvider.overrideWithValue(mockNostrService),
           videoEventServiceProvider.overrideWithValue(mockVideoEventService),
           pageContextProvider.overrideWith((ref) {
@@ -93,7 +111,7 @@ void main() {
               const RouteContext(type: RouteType.explore, videoIndex: 0),
             );
           }),
-          seenVideosProvider.overrideWith((ref) => SeenVideosNotifier()),
+          seenVideosProvider.overrideWith(() => _FakeSeenVideosNotifier(SeenVideosState.initial)),
         ],
       );
 
@@ -109,7 +127,7 @@ void main() {
 
       // Act - Make app ready
       testContainer.updateOverrides([
-        appForegroundProvider.overrideWith((ref) => Stream.value(true)), // NOW ready
+        appForegroundProvider.overrideWith(() => _FakeAppForeground(true)), // NOW ready
         nostrServiceProvider.overrideWithValue(mockNostrService),
         videoEventServiceProvider.overrideWithValue(mockVideoEventService),
         pageContextProvider.overrideWith((ref) {
@@ -117,7 +135,7 @@ void main() {
             const RouteContext(type: RouteType.explore, videoIndex: 0),
           );
         }),
-        seenVideosProvider.overrideWith((ref) => SeenVideosNotifier()),
+        seenVideosProvider.overrideWith(() => _FakeSeenVideosNotifier(SeenVideosState.initial)),
       ]);
 
       // Trigger rebuild by invalidating
@@ -166,6 +184,7 @@ void main() {
     test('should emit current videos immediately when subscription starts', () async {
       // Arrange - Service has existing videos
       final now = DateTime.now();
+      final timestamp = now.millisecondsSinceEpoch;
       final testVideos = <VideoEvent>[
         VideoEvent(
           id: 'video1',
@@ -173,8 +192,8 @@ void main() {
           title: 'Test Video 1',
           content: 'Content 1',
           videoUrl: 'https://example.com/video1.mp4',
-          createdAt: now,
-          timestamp: now.millisecondsSinceEpoch,
+          createdAt: timestamp,
+          timestamp: now,
         ),
         VideoEvent(
           id: 'video2',
@@ -182,8 +201,8 @@ void main() {
           title: 'Test Video 2',
           content: 'Content 2',
           videoUrl: 'https://example.com/video2.mp4',
-          createdAt: now,
-          timestamp: now.millisecondsSinceEpoch,
+          createdAt: timestamp,
+          timestamp: now,
         ),
       ];
 
@@ -211,6 +230,7 @@ void main() {
     test('should reorder videos to show unseen first', () async {
       // Arrange - Service has mix of seen and unseen videos
       final now = DateTime.now();
+      final timestamp = now.millisecondsSinceEpoch;
       final testVideos = <VideoEvent>[
         VideoEvent(
           id: 'seen1',
@@ -218,8 +238,8 @@ void main() {
           title: 'Seen Video 1',
           content: 'Content 1',
           videoUrl: 'https://example.com/video1.mp4',
-          createdAt: now,
-          timestamp: now.millisecondsSinceEpoch,
+          createdAt: timestamp,
+          timestamp: now,
         ),
         VideoEvent(
           id: 'unseen1',
@@ -227,8 +247,8 @@ void main() {
           title: 'Unseen Video 1',
           content: 'Content 2',
           videoUrl: 'https://example.com/video2.mp4',
-          createdAt: now,
-          timestamp: now.millisecondsSinceEpoch,
+          createdAt: timestamp,
+          timestamp: now,
         ),
         VideoEvent(
           id: 'seen2',
@@ -236,21 +256,21 @@ void main() {
           title: 'Seen Video 2',
           content: 'Content 3',
           videoUrl: 'https://example.com/video3.mp4',
-          createdAt: now,
-          timestamp: now.millisecondsSinceEpoch,
+          createdAt: timestamp,
+          timestamp: now,
         ),
       ];
 
       when(mockVideoEventService.discoveryVideos).thenReturn(testVideos);
 
       // Mark some as seen
-      final seenNotifier = SeenVideosNotifier();
-      seenNotifier.markAsSeen('seen1');
-      seenNotifier.markAsSeen('seen2');
+      final seenState = SeenVideosState.initial.copyWith(
+        seenVideoIds: {'seen1', 'seen2'},
+      );
 
       final testContainer = ProviderContainer(
         overrides: [
-          appForegroundProvider.overrideWith((ref) => Stream.value(true)),
+          appForegroundProvider.overrideWith(() => _FakeAppForeground(true)),
           nostrServiceProvider.overrideWithValue(mockNostrService),
           videoEventServiceProvider.overrideWithValue(mockVideoEventService),
           pageContextProvider.overrideWith((ref) {
@@ -258,7 +278,7 @@ void main() {
               const RouteContext(type: RouteType.explore, videoIndex: 0),
             );
           }),
-          seenVideosProvider.overrideWith((ref) => seenNotifier),
+          seenVideosProvider.overrideWith(() => _FakeSeenVideosNotifier(seenState)),
         ],
       );
 
@@ -292,7 +312,7 @@ void main() {
       // Arrange - Gates not satisfied
       final testContainer = ProviderContainer(
         overrides: [
-          appForegroundProvider.overrideWith((ref) => Stream.value(false)), // NOT ready
+          appForegroundProvider.overrideWith(() => _FakeAppForeground(false)), // NOT ready
           nostrServiceProvider.overrideWithValue(mockNostrService),
           videoEventServiceProvider.overrideWithValue(mockVideoEventService),
           pageContextProvider.overrideWith((ref) {
@@ -300,7 +320,7 @@ void main() {
               const RouteContext(type: RouteType.home, videoIndex: 0), // Wrong tab
             );
           }),
-          seenVideosProvider.overrideWith((ref) => SeenVideosNotifier()),
+          seenVideosProvider.overrideWith(() => _FakeSeenVideosNotifier(SeenVideosState.initial)),
         ],
       );
 
@@ -368,7 +388,7 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
-          appForegroundProvider.overrideWith((ref) => Stream.value(true)),
+          appForegroundProvider.overrideWith(() => _FakeAppForeground(true)),
           nostrServiceProvider.overrideWithValue(mockNostrService),
           videoEventServiceProvider.overrideWithValue(mockVideoEventService),
           pageContextProvider.overrideWith((ref) {
@@ -376,7 +396,7 @@ void main() {
               const RouteContext(type: RouteType.explore, videoIndex: 0),
             );
           }),
-          seenVideosProvider.overrideWith((ref) => SeenVideosNotifier()),
+          seenVideosProvider.overrideWith(() => _FakeSeenVideosNotifier(SeenVideosState.initial)),
         ],
       );
     });
@@ -413,6 +433,7 @@ void main() {
 
       // Act - Add videos and trigger listener
       final now = DateTime.now();
+      final timestamp = now.millisecondsSinceEpoch;
       final newVideos = <VideoEvent>[
         VideoEvent(
           id: 'new1',
@@ -420,8 +441,8 @@ void main() {
           title: 'New Video',
           content: 'Content',
           videoUrl: 'https://example.com/new.mp4',
-          createdAt: now,
-          timestamp: now.millisecondsSinceEpoch,
+          createdAt: timestamp,
+          timestamp: now,
         ),
       ];
       when(mockVideoEventService.discoveryVideos).thenReturn(newVideos);

@@ -51,6 +51,7 @@ void main() {
       const testHashtag = 'bitcoin';
 
       when(() => mockVideoService.isLoading).thenReturn(false);
+      when(() => mockVideoService.isLoadingForSubscription(any)).thenReturn(false);
       when(() => mockHashtagService.getVideosByHashtags([testHashtag]))
           .thenReturn([]);
       when(() => mockHashtagService.getHashtagStats(testHashtag))
@@ -66,6 +67,7 @@ void main() {
       const testHashtag = 'bitcoin';
 
       when(() => mockVideoService.isLoading).thenReturn(true);
+      when(() => mockVideoService.isLoadingForSubscription(any)).thenReturn(true);
       when(() => mockHashtagService.getVideosByHashtags([testHashtag]))
           .thenReturn([]);
       when(() => mockHashtagService.getHashtagStats(testHashtag))
@@ -81,6 +83,7 @@ void main() {
       const testHashtag = 'bitcoin';
 
       when(() => mockVideoService.isLoading).thenReturn(false);
+      when(() => mockVideoService.isLoadingForSubscription(any)).thenReturn(false);
       when(() => mockHashtagService.getVideosByHashtags([testHashtag]))
           .thenReturn([]);
       when(() => mockHashtagService.getHashtagStats(testHashtag))
@@ -113,6 +116,7 @@ void main() {
       );
 
       when(() => mockVideoService.isLoading).thenReturn(false);
+      when(() => mockVideoService.isLoadingForSubscription(any)).thenReturn(false);
       when(() => mockHashtagService.getVideosByHashtags([testHashtag]))
           .thenReturn(testVideos);
       when(() => mockHashtagService.getHashtagStats(testHashtag))
@@ -142,6 +146,7 @@ void main() {
       );
 
       when(() => mockVideoService.isLoading).thenReturn(false);
+      when(() => mockVideoService.isLoadingForSubscription(any)).thenReturn(false);
       when(() => mockHashtagService.getVideosByHashtags([testHashtag]))
           .thenReturn(testVideos);
       when(() => mockHashtagService.getHashtagStats(testHashtag))
@@ -169,6 +174,7 @@ void main() {
       );
 
       when(() => mockVideoService.isLoading).thenReturn(false);
+      when(() => mockVideoService.isLoadingForSubscription(any)).thenReturn(false);
       when(() => mockHashtagService.getVideosByHashtags([testHashtag]))
           .thenReturn(testVideos);
       when(() => mockHashtagService.getHashtagStats(testHashtag))
@@ -183,6 +189,7 @@ void main() {
       const testHashtag = 'bitcoin';
 
       when(() => mockVideoService.isLoading).thenReturn(false);
+      when(() => mockVideoService.isLoadingForSubscription(any)).thenReturn(false);
       when(() => mockHashtagService.getVideosByHashtags([testHashtag]))
           .thenReturn([]);
       when(() => mockHashtagService.getHashtagStats(testHashtag))
@@ -202,6 +209,7 @@ void main() {
       const testHashtag = 'bitcoin';
 
       when(() => mockVideoService.isLoading).thenReturn(false);
+      when(() => mockVideoService.isLoadingForSubscription(any)).thenReturn(false);
       when(() => mockHashtagService.getVideosByHashtags([testHashtag]))
           .thenReturn([]);
       when(() => mockHashtagService.getHashtagStats(testHashtag))
@@ -228,6 +236,7 @@ void main() {
       ];
 
       when(() => mockVideoService.isLoading).thenReturn(false);
+      when(() => mockVideoService.isLoadingForSubscription(any)).thenReturn(false);
       when(() => mockHashtagService.getVideosByHashtags([testHashtag]))
           .thenReturn(testVideos);
       when(() => mockHashtagService.getHashtagStats(testHashtag))

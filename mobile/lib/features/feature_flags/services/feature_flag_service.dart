@@ -7,8 +7,8 @@ import 'package:openvine/features/feature_flags/models/feature_flag_state.dart';
 import 'package:openvine/features/feature_flags/models/flag_metadata.dart';
 import 'package:openvine/features/feature_flags/services/build_configuration.dart';
 
-/// REFACTORED: Removed ChangeNotifier - now uses pure state management via Riverpod
-class FeatureFlagService {
+/// Service managing feature flag state with change notifications for Riverpod reactivity
+class FeatureFlagService extends ChangeNotifier {
   FeatureFlagService(this._prefs, this._buildConfig) {
     _initializeWithDefaults();
   }
@@ -42,6 +42,7 @@ class FeatureFlagService {
     }
 
     _currentState = FeatureFlagState(flags);
+    notifyListeners();
   }
 
   /// Check if a feature flag is enabled
@@ -57,11 +58,13 @@ class FeatureFlagService {
       await _prefs.setBool(key, value);
 
       _currentState = _currentState.copyWith(flag, value);
+      notifyListeners();
     } catch (e) {
       // Handle storage errors gracefully - log and continue
       debugPrint('Failed to persist feature flag $flag: $e');
       // Still update in-memory state even if persistence fails
       _currentState = _currentState.copyWith(flag, value);
+      notifyListeners();
     }
   }
 
@@ -74,12 +77,14 @@ class FeatureFlagService {
 
       final defaultValue = _buildConfig.getDefault(flag);
       _currentState = _currentState.copyWith(flag, defaultValue);
+      notifyListeners();
     } catch (e) {
       // Handle storage errors gracefully - log and continue
       debugPrint('Failed to reset feature flag $flag: $e');
       // Still update in-memory state even if persistence fails
       final defaultValue = _buildConfig.getDefault(flag);
       _currentState = _currentState.copyWith(flag, defaultValue);
+      notifyListeners();
     }
   }
 
@@ -99,6 +104,7 @@ class FeatureFlagService {
     }
 
     _currentState = FeatureFlagState(flags);
+    notifyListeners();
   }
 
   /// Check if a flag has a user override (is different from build default)

@@ -373,7 +373,7 @@ class NostrService implements INostrService {
       filters: embeddedFilters,
       onEvent: (embeddedEvent) {
         // Use batched logging for repetitive relay event logs
-        RelayEventLogBatcher.batchRelayEvent(subscriptionId: id);
+        // RelayEventLogBatcher.batchRelayEvent(subscriptionId: id); // Commented out - too verbose
         // Convert embedded relay event to nostr_sdk event
         final event = _convertFromEmbeddedEvent(embeddedEvent);
 

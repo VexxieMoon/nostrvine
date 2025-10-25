@@ -333,7 +333,9 @@ void main() {
         verify(mockNostrService.subscribeToEvents(
           filters: argThat(
             predicate<List<Filter>>((filters) =>
-                filters.isNotEmpty && filters[0].kinds!.contains(30005)),
+                filters.isNotEmpty &&
+                filters[0].kinds != null &&
+                filters[0].kinds!.contains(30005)),
             named: 'filters',
           ),
         )).called(1);

@@ -41,7 +41,8 @@ void main() {
           subscriptionType: SubscriptionType.discovery, limit: 5);
 
       // Wait for events to load
-      await tester.binding.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 2));
+      await tester.pump();
 
       // Get video events from cache
       final videoEvents = videoEventService.discoveryVideos;
@@ -68,7 +69,8 @@ void main() {
           subscriptionType: SubscriptionType.discovery, limit: 10);
 
       // Wait a bit for any events
-      await tester.binding.delayed(const Duration(seconds: 3));
+      await Future.delayed(const Duration(seconds: 3));
+      await tester.pump();
 
       // Check if we got any new events
       int finalCount = videoEventService.discoveryVideos.length;

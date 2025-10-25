@@ -26,6 +26,7 @@ class _HomeScreenRouterState extends ConsumerState<HomeScreenRouter> with VideoP
   PageController? _controller;
   int? _lastUrlIndex;
   int? _lastPrefetchIndex;
+  String? _currentVideoId; // Track the video ID we're currently viewing
 
   @override
   void dispose() {
@@ -93,10 +94,31 @@ class _HomeScreenRouterState extends ConsumerState<HomeScreenRouter> with VideoP
               final safeIndex = urlIndex.clamp(0, itemCount - 1);
               _controller = PageController(initialPage: safeIndex);
               _lastUrlIndex = safeIndex;
+              _currentVideoId = videos[safeIndex].id; // Remember which video we're showing
+            }
+
+            // Check if video list changed (e.g., reordered due to social provider update)
+            // If current video moved to different index, update URL to maintain position
+            if (_currentVideoId != null && videos.isNotEmpty) {
+              final currentVideoIndex = videos.indexWhere((v) => v.id == _currentVideoId);
+              if (currentVideoIndex != -1 && currentVideoIndex != urlIndex) {
+                // Video we're viewing is now at a different index - update URL silently
+                Log.debug(
+                  '📍 Video $_currentVideoId moved from index $urlIndex → $currentVideoIndex, updating URL',
+                  name: 'HomeScreenRouter',
+                  category: LogCategory.video,
+                );
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  context.go(buildRoute(
+                    RouteContext(type: RouteType.home, videoIndex: currentVideoIndex),
+                  ));
+                });
+                return; // Skip rest of sync logic, let rebuild handle it
+              }
             }
 
             // Sync controller when URL changes externally (back/forward/deeplink)
-            // OR when videos list changes (e.g., social provider loads)
             // Use post-frame to avoid calling jumpToPage during build
             if (_controller!.hasClients) {
               final safeIndex = urlIndex.clamp(0, itemCount - 1);
@@ -105,6 +127,7 @@ class _HomeScreenRouterState extends ConsumerState<HomeScreenRouter> with VideoP
               // Sync if URL changed OR if controller position doesn't match URL
               if (urlIndex != _lastUrlIndex || currentPage != safeIndex) {
                 _lastUrlIndex = urlIndex;
+                _currentVideoId = videos[safeIndex].id; // Update tracked video
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (!mounted || !_controller!.hasClients) return;
                   final currentPageNow = _controller!.page?.round() ?? 0;
@@ -151,6 +174,9 @@ class _HomeScreenRouterState extends ConsumerState<HomeScreenRouter> with VideoP
                 controller: _controller,
                 scrollDirection: Axis.vertical,
                 onPageChanged: (newIndex) {
+                  // Update tracked video ID
+                  _currentVideoId = videos[newIndex].id;
+
                   // Guard: only navigate if URL doesn't match
                   if (newIndex != urlIndex) {
                     context.go(buildRoute(

@@ -13,7 +13,6 @@ void main() {
     test('recorded video should have 1:1 (square) aspect ratio', () async {
       // Arrange
       final container = ProviderContainer();
-      addTearDown(container.dispose);
 
       final controller = container.read(vineRecordingProvider.notifier);
 
@@ -48,13 +47,13 @@ void main() {
       // Cleanup
       await videoController.dispose();
       await videoFile.delete();
+      container.dispose();
     });
 
 
     test('recorded segments should maintain square aspect ratio', () async {
       // Arrange
       final container = ProviderContainer();
-      addTearDown(container.dispose);
 
       final controller = container.read(vineRecordingProvider.notifier);
       await controller.initialize();
@@ -89,12 +88,12 @@ void main() {
       // Cleanup
       await videoController.dispose();
       await videoFile.delete();
+      container.dispose();
     });
 
     test('video metadata should report square dimensions', () async {
       // Arrange
       final container = ProviderContainer();
-      addTearDown(container.dispose);
 
       final controller = container.read(vineRecordingProvider.notifier);
       await controller.initialize();
@@ -123,6 +122,7 @@ void main() {
       // Cleanup
       await videoController.dispose();
       await videoFile.delete();
+      container.dispose();
     });
   });
 }

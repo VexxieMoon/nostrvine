@@ -101,6 +101,89 @@ void main() {
       ));
     });
 
+    test('should preserve video list when socialProvider updates with same following list', () async {
+      // Setup: Create mock videos
+      final mockVideos = [
+        VideoEvent(
+          id: 'video1',
+          pubkey: 'author1',
+          content: 'Test video 1',
+          kind: 34236,
+          createdAt: DateTime.now(),
+          tags: [],
+          sig: 'sig1',
+        ),
+        VideoEvent(
+          id: 'video2',
+          pubkey: 'author2',
+          content: 'Test video 2',
+          kind: 34236,
+          createdAt: DateTime.now(),
+          tags: [],
+          sig: 'sig2',
+        ),
+      ];
+
+      when(mockVideoEventService.homeFeedVideos).thenReturn(mockVideos);
+
+      // Create container with initial social state
+      final testContainer = ProviderContainer(
+        overrides: [
+          videoEventServiceProvider.overrideWithValue(mockVideoEventService),
+          nostrServiceProvider.overrideWithValue(mockNostrService),
+          subscriptionManagerProvider.overrideWithValue(mockSubscriptionManager),
+          social.socialProvider.overrideWith(() {
+            return TestSocialNotifier(const SocialState(
+              followingPubkeys: ['author1', 'author2'],
+              isInitialized: true,
+            ));
+          }),
+        ],
+      );
+      addTearDown(testContainer.dispose);
+
+      // Act: Get initial feed
+      final initialFeed = await testContainer.read(homeFeedProvider.future);
+
+      // Verify initial feed has videos
+      expect(initialFeed.videos.length, 2);
+      expect(initialFeed.videos[0].id, 'video1');
+      expect(initialFeed.videos[1].id, 'video2');
+
+      // Act: Update social provider with different state but SAME following list
+      // This simulates what happens when socialProvider finishes initializing
+      // (e.g., likes/reposts loaded but following list unchanged)
+      final updatedContainer = ProviderContainer(
+        overrides: [
+          videoEventServiceProvider.overrideWithValue(mockVideoEventService),
+          nostrServiceProvider.overrideWithValue(mockNostrService),
+          subscriptionManagerProvider.overrideWithValue(mockSubscriptionManager),
+          social.socialProvider.overrideWith(() {
+            return TestSocialNotifier(SocialState(
+              followingPubkeys: const ['author1', 'author2'], // Same list!
+              isInitialized: true,
+              likedEventIds: const {'like1'}, // Different likes
+              repostedEventIds: const {'repost1'}, // Different reposts
+            ));
+          }),
+        ],
+      );
+      addTearDown(updatedContainer.dispose);
+
+      final updatedFeed = await updatedContainer.read(homeFeedProvider.future);
+
+      // Assert: Video list order should be PRESERVED
+      expect(updatedFeed.videos.length, 2);
+      expect(updatedFeed.videos[0].id, 'video1', reason: 'First video should remain first');
+      expect(updatedFeed.videos[1].id, 'video2', reason: 'Second video should remain second');
+
+      // Verify we didn't re-subscribe unnecessarily
+      verify(mockVideoEventService.subscribeToHomeFeed(
+        any,
+        limit: anyNamed('limit'),
+      ));
+    });
+
     test('should subscribe to videos from followed authors', () async {
       // Setup: User is following 3 people
       final followingPubkeys = [

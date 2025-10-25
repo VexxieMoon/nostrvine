@@ -985,12 +985,12 @@ class VideoEventService extends ChangeNotifier {
       }
 
       // Use batched logging for repetitive event logs
-      VideoEventLogBatcher.batchVideoEvent(
-        eventId: event.id,
-        authorPubkey: event.pubkey,
-        subscriptionType: subscriptionType.toString(),
-        kind: event.kind,
-      );
+      // VideoEventLogBatcher.batchVideoEvent(
+      //   eventId: event.id,
+      //   authorPubkey: event.pubkey,
+      //   subscriptionType: subscriptionType.toString(),
+      //   kind: event.kind,
+      // ); // Commented out - too verbose
 
       if (!NIP71VideoKinds.isVideoKind(event.kind) && event.kind != 6) {
         // Cache non-video events in appropriate services instead of discarding
@@ -1047,10 +1047,10 @@ class VideoEventService extends ChangeNotifier {
       if (NIP71VideoKinds.isVideoKind(event.kind)) {
         // Direct video event
         // Use batched logging for NIP-71 events
-        VideoEventLogBatcher.batchNip71Event(
-          eventId: event.id,
-          subscriptionType: subscriptionType.toString(),
-        );
+        // VideoEventLogBatcher.batchNip71Event(
+        //   eventId: event.id,
+        //   subscriptionType: subscriptionType.toString(),
+        // ); // Commented out - too verbose
 
         // Debug: Check for d tag
         final hasDTag =
@@ -1145,14 +1145,14 @@ class VideoEventService extends ChangeNotifier {
               list.removeRange(500, list.length);
             }
           } else {
-            Log.warning(
-                '🎬 FILTER: ⏩ Skipping video event without video URL (hasVideo=false)',
-                name: 'VideoEventService',
-                category: LogCategory.video);
-            Log.warning(
-                '🎬 FILTER: Event details - title: ${videoEvent.title}, content: ${event.content}, tags: ${event.tags}',
-                name: 'VideoEventService',
-                category: LogCategory.video);
+            // Log.warning(
+            //     '🎬 FILTER: ⏩ Skipping video event without video URL (hasVideo=false)',
+            //     name: 'VideoEventService',
+            //     category: LogCategory.video);
+            // Log.warning(
+            //     '🎬 FILTER: Event details - title: ${videoEvent.title}, content: ${event.content}, tags: ${event.tags}',
+            //     name: 'VideoEventService',
+            //     category: LogCategory.video);
           }
         } catch (e, stackTrace) {
           Log.error('Failed to parse video event: $e',
