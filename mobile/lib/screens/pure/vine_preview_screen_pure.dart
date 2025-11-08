@@ -106,13 +106,22 @@ class _VinePreviewScreenPureState extends ConsumerState<VinePreviewScreenPure> {
       );
 
       await _videoController!.setLooping(true);
-      await _videoController!.play();
 
       if (mounted) {
         setState(() {
           _isVideoInitialized = true;
         });
       }
+
+      // Start playing after UI has rendered
+      // Use addPostFrameCallback to ensure play() happens after frame is drawn
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (_videoController != null && mounted) {
+          await _videoController!.play();
+          Log.info('🎬 Video started playing (isPlaying: ${_videoController!.value.isPlaying})',
+              category: LogCategory.video);
+        }
+      });
 
       Log.info('🎬 Video preview initialized successfully',
           category: LogCategory.video);

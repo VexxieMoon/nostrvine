@@ -119,13 +119,22 @@ class _VideoMetadataScreenPureState extends ConsumerState<VideoMetadataScreenPur
       );
 
       await _videoController!.setLooping(true);
-      await _videoController!.play();
 
       if (mounted) {
         setState(() {
           _isVideoInitialized = true;
         });
       }
+
+      // Start playing after UI has rendered
+      // Use addPostFrameCallback to ensure play() happens after frame is drawn
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (_videoController != null && mounted) {
+          await _videoController!.play();
+          Log.info('📝 Video started playing (isPlaying: ${_videoController!.value.isPlaying})',
+              category: LogCategory.video);
+        }
+      });
 
       Log.info('📝 Video preview initialized successfully',
           category: LogCategory.video);
@@ -260,48 +269,48 @@ class _VideoMetadataScreenPureState extends ConsumerState<VideoMetadataScreenPur
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: _isVideoInitialized && _videoController != null
-                              ? Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    AspectRatio(
-                                      aspectRatio: _videoController!.value.aspectRatio,
-                                      child: VideoPlayer(_videoController!),
-                                    ),
-                                    // Play/pause overlay
-                                    Positioned(
-                                      bottom: 8,
-                                      right: 8,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withValues(alpha: 0.6),
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(
-                                              Icons.loop,
-                                              color: Colors.white,
-                                              size: 16,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              _formatDuration(_videoController?.value.duration ?? Duration.zero),
-                                              style: const TextStyle(
+                          child: Center(
+                            child: _isVideoInitialized && _videoController != null
+                                ? Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      AspectRatio(
+                                        aspectRatio: _videoController!.value.aspectRatio,
+                                        child: VideoPlayer(_videoController!),
+                                      ),
+                                      // Play/pause overlay
+                                      Positioned(
+                                        bottom: 8,
+                                        right: 8,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(alpha: 0.6),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                Icons.loop,
                                                 color: Colors.white,
-                                                fontSize: 12,
+                                                size: 16,
                                               ),
-                                            ),
-                                          ],
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                _formatDuration(_videoController?.value.duration ?? Duration.zero),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                )
-                              : Center(
-                                  child: Column(
+                                    ],
+                                  )
+                                : Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       const CircularProgressIndicator(color: VineTheme.vineGreen),
@@ -312,7 +321,7 @@ class _VideoMetadataScreenPureState extends ConsumerState<VideoMetadataScreenPur
                                       ),
                                     ],
                                   ),
-                                ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),
