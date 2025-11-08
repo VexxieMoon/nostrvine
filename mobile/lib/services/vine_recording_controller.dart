@@ -1439,8 +1439,42 @@ class VineRecordingController {
             try {
               final completedPath = await macOSInterface.completeRecording();
               if (completedPath != null) {
-                final file = File(completedPath);
-                if (await file.exists()) {
+                final rawFile = File(completedPath);
+                if (await rawFile.exists()) {
+                  // Apply aspect ratio crop filter to the recorded video
+                  Log.info('📹 Applying aspect ratio crop to macOS single recording',
+                      name: 'VineRecordingController', category: LogCategory.system);
+
+                  final tempDir = await getTemporaryDirectory();
+                  final outputPath =
+                      '${tempDir.path}/vine_final_${DateTime.now().millisecondsSinceEpoch}.mp4';
+
+                  final cropFilter = _buildCropFilter(_aspectRatio);
+                  final command = '-i "$completedPath" -vf "$cropFilter" -c:a copy "$outputPath"';
+
+                  Log.info('📹 Executing FFmpeg crop command: $command',
+                      name: 'VineRecordingController', category: LogCategory.system);
+
+                  final session = await FFmpegKit.execute(command);
+                  final returnCode = await session.getReturnCode();
+
+                  if (!ReturnCode.isSuccess(returnCode)) {
+                    final output = await session.getOutput();
+                    Log.error('📹 FFmpeg crop failed with code $returnCode',
+                        name: 'VineRecordingController', category: LogCategory.system);
+                    Log.error('📹 FFmpeg output: $output',
+                        name: 'VineRecordingController', category: LogCategory.system);
+                    throw Exception('FFmpeg crop failed with code $returnCode');
+                  }
+
+                  final croppedFile = File(outputPath);
+                  if (!await croppedFile.exists()) {
+                    throw Exception('Cropped file does not exist after FFmpeg processing');
+                  }
+
+                  Log.info('📹 FFmpeg crop successful: $outputPath',
+                      name: 'VineRecordingController', category: LogCategory.system);
+
                   _setState(VineRecordingState.completed);
                   macOSInterface.isSingleRecordingMode =
                       false; // Clear flag after successful completion
@@ -1449,7 +1483,7 @@ class VineRecordingController {
                   ProofManifest? manifest;
                   if (_proofModeSession != null && _currentProofSessionId != null) {
                     try {
-                      final videoHash = await _calculateSHA256(file);
+                      final videoHash = await _calculateSHA256(croppedFile);
                       manifest = await _proofModeSession!.finalizeSession(videoHash);
                       Log.info('ProofMode session finalized with hash: $videoHash',
                           name: 'VineRecordingController', category: LogCategory.system);
@@ -1459,7 +1493,7 @@ class VineRecordingController {
                     }
                   }
 
-                  return (file, manifest);
+                  return (croppedFile, manifest);
                 }
               }
             } catch (e) {
@@ -1475,13 +1509,47 @@ class VineRecordingController {
               name: 'VineRecordingController',
               category: LogCategory.system);
           if (macOSInterface.currentRecordingPath != null) {
-            final file = File(macOSInterface.currentRecordingPath!);
-            final exists = await file.exists();
+            final rawFile = File(macOSInterface.currentRecordingPath!);
+            final exists = await rawFile.exists();
             Log.info(
                 '📱 File exists: $exists, path: ${macOSInterface.currentRecordingPath}',
                 name: 'VineRecordingController',
                 category: LogCategory.system);
             if (exists) {
+              // Apply aspect ratio crop filter to the recorded video
+              Log.info('📹 Applying aspect ratio crop to currentRecordingPath',
+                  name: 'VineRecordingController', category: LogCategory.system);
+
+              final tempDir = await getTemporaryDirectory();
+              final outputPath =
+                  '${tempDir.path}/vine_final_${DateTime.now().millisecondsSinceEpoch}.mp4';
+
+              final cropFilter = _buildCropFilter(_aspectRatio);
+              final command = '-i "${macOSInterface.currentRecordingPath}" -vf "$cropFilter" -c:a copy "$outputPath"';
+
+              Log.info('📹 Executing FFmpeg crop command: $command',
+                  name: 'VineRecordingController', category: LogCategory.system);
+
+              final session = await FFmpegKit.execute(command);
+              final returnCode = await session.getReturnCode();
+
+              if (!ReturnCode.isSuccess(returnCode)) {
+                final output = await session.getOutput();
+                Log.error('📹 FFmpeg crop failed with code $returnCode',
+                    name: 'VineRecordingController', category: LogCategory.system);
+                Log.error('📹 FFmpeg output: $output',
+                    name: 'VineRecordingController', category: LogCategory.system);
+                throw Exception('FFmpeg crop failed with code $returnCode');
+              }
+
+              final croppedFile = File(outputPath);
+              if (!await croppedFile.exists()) {
+                throw Exception('Cropped file does not exist after FFmpeg processing');
+              }
+
+              Log.info('📹 FFmpeg crop successful: $outputPath',
+                  name: 'VineRecordingController', category: LogCategory.system);
+
               _setState(VineRecordingState.completed);
               macOSInterface.isSingleRecordingMode =
                   false; // Clear flag after successful completion
@@ -1490,7 +1558,7 @@ class VineRecordingController {
               ProofManifest? manifest;
               if (_proofModeSession != null && _currentProofSessionId != null) {
                 try {
-                  final videoHash = await _calculateSHA256(file);
+                  final videoHash = await _calculateSHA256(croppedFile);
                   manifest = await _proofModeSession!.finalizeSession(videoHash);
                   Log.info('ProofMode session finalized with hash: $videoHash',
                       name: 'VineRecordingController', category: LogCategory.system);
@@ -1500,7 +1568,7 @@ class VineRecordingController {
                 }
               }
 
-              return (file, manifest);
+              return (croppedFile, manifest);
             }
           }
 
@@ -1513,19 +1581,53 @@ class VineRecordingController {
             Log.info('📱 Virtual segment path: ${segment.filePath}',
                 name: 'VineRecordingController', category: LogCategory.system);
             if (segment.filePath != null) {
-              final file = File(segment.filePath!);
-              final exists = await file.exists();
+              final rawFile = File(segment.filePath!);
+              final exists = await rawFile.exists();
               Log.info('📱 Virtual segment file exists: $exists',
                   name: 'VineRecordingController',
                   category: LogCategory.system);
               if (exists) {
+                // Apply aspect ratio crop filter to the recorded video
+                Log.info('📹 Applying aspect ratio crop to virtual segment',
+                    name: 'VineRecordingController', category: LogCategory.system);
+
+                final tempDir = await getTemporaryDirectory();
+                final outputPath =
+                    '${tempDir.path}/vine_final_${DateTime.now().millisecondsSinceEpoch}.mp4';
+
+                final cropFilter = _buildCropFilter(_aspectRatio);
+                final command = '-i "${segment.filePath}" -vf "$cropFilter" -c:a copy "$outputPath"';
+
+                Log.info('📹 Executing FFmpeg crop command: $command',
+                    name: 'VineRecordingController', category: LogCategory.system);
+
+                final session = await FFmpegKit.execute(command);
+                final returnCode = await session.getReturnCode();
+
+                if (!ReturnCode.isSuccess(returnCode)) {
+                  final output = await session.getOutput();
+                  Log.error('📹 FFmpeg crop failed with code $returnCode',
+                      name: 'VineRecordingController', category: LogCategory.system);
+                  Log.error('📹 FFmpeg output: $output',
+                      name: 'VineRecordingController', category: LogCategory.system);
+                  throw Exception('FFmpeg crop failed with code $returnCode');
+                }
+
+                final croppedFile = File(outputPath);
+                if (!await croppedFile.exists()) {
+                  throw Exception('Cropped file does not exist after FFmpeg processing');
+                }
+
+                Log.info('📹 FFmpeg crop successful: $outputPath',
+                    name: 'VineRecordingController', category: LogCategory.system);
+
                 _setState(VineRecordingState.completed);
 
                 // Finalize ProofMode if active
                 ProofManifest? manifest;
                 if (_proofModeSession != null && _currentProofSessionId != null) {
                   try {
-                    final videoHash = await _calculateSHA256(file);
+                    final videoHash = await _calculateSHA256(croppedFile);
                     manifest = await _proofModeSession!.finalizeSession(videoHash);
                     Log.info('ProofMode session finalized with hash: $videoHash',
                         name: 'VineRecordingController', category: LogCategory.system);
@@ -1535,7 +1637,7 @@ class VineRecordingController {
                   }
                 }
 
-                return (file, manifest);
+                return (croppedFile, manifest);
               }
             }
           }
