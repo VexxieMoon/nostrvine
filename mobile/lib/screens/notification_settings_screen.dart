@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:openvine/providers/app_providers.dart';
 import 'package:openvine/theme/vine_theme.dart';
-import 'package:openvine/widgets/camera_fab.dart';
-import 'package:openvine/widgets/vine_bottom_nav.dart';
 
 class NotificationSettingsScreen extends ConsumerStatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -219,9 +217,6 @@ class _NotificationSettingsScreenState
             ),
           ),
         ),
-        floatingActionButton: const CameraFAB(),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        bottomNavigationBar: VineBottomNav(),
       );
 
   Widget _buildSectionHeader(String title) => Text(

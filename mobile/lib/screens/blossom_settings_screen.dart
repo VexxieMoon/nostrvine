@@ -6,8 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:openvine/providers/app_providers.dart';
 import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/utils/unified_logger.dart';
-import 'package:openvine/widgets/camera_fab.dart';
-import 'package:openvine/widgets/vine_bottom_nav.dart';
 
 class BlossomSettingsScreen extends ConsumerStatefulWidget {
   const BlossomSettingsScreen({super.key});
@@ -135,9 +133,6 @@ class _BlossomSettingsScreenState extends ConsumerState<BlossomSettingsScreen> {
             color: VineTheme.vineGreen,
           ),
         ),
-        floatingActionButton: const CameraFAB(),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        bottomNavigationBar: VineBottomNav(),
       );
     }
 
@@ -335,9 +330,6 @@ class _BlossomSettingsScreenState extends ConsumerState<BlossomSettingsScreen> {
           ),
         ),
       ),
-      floatingActionButton: const CameraFAB(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: VineBottomNav(),
     );
   }
 

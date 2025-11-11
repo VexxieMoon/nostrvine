@@ -31,7 +31,7 @@ class AppShell extends ConsumerWidget {
     final ctx = ref.watch(pageContextProvider).asData?.value;
     switch (ctx?.type) {
       case RouteType.home:
-        return 'Divine';
+        return 'Home';
       case RouteType.explore:
         return 'Explore';
       case RouteType.notifications:

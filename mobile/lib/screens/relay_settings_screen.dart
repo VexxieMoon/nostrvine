@@ -7,8 +7,6 @@ import 'package:openvine/providers/app_providers.dart';
 import 'package:openvine/services/video_event_service.dart';
 import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/utils/unified_logger.dart';
-import 'package:openvine/widgets/camera_fab.dart';
-import 'package:openvine/widgets/vine_bottom_nav.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Screen for managing Nostr relay settings
@@ -193,9 +191,6 @@ class _RelaySettingsScreenState extends ConsumerState<RelaySettingsScreen> {
           ),
         ],
       ),
-      floatingActionButton: const CameraFAB(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: VineBottomNav(),
     );
   }
 
