@@ -46,7 +46,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
           ),
           child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
