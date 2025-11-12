@@ -68,7 +68,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Create and share short videos on the decentralized web',
+                  'Create and share short videos\non the decentralized web',
                   style: TextStyle(
                     fontSize: 18,
                     color: Color(0xFFF5F6EA),
