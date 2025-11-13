@@ -40,7 +40,6 @@ class _UniversalCameraScreenPureState
   String? _errorMessage;
   bool _isProcessing = false;
   bool _permissionDenied = false;
-  bool? _proofModeAvailable; // null = checking, true = available, false = unavailable
 
   // Camera control states
   FlashMode _flashMode = FlashMode.off;
@@ -189,9 +188,6 @@ class _UniversalCameraScreenPureState
   /// Perform async initialization after the first frame
   Future<void> _performAsyncInitialization() async {
     try {
-      // Check ProofMode availability
-      _checkProofModeAvailability();
-
       // Clean up any old temp files and reset state from previous recordings
       ref.read(vineRecordingProvider.notifier).cleanupAndReset();
 
@@ -459,42 +455,7 @@ class _UniversalCameraScreenPureState
               );
             },
           ),
-          // ProofMode status indicator
-          if (_proofModeAvailable != null)
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 6,
-              ),
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                color: _proofModeAvailable!
-                    ? VineTheme.vineGreen.withValues(alpha: 0.3)
-                    : Colors.orange.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _proofModeAvailable!
-                        ? Icons.verified_user
-                        : Icons.warning_amber_rounded,
-                    color: _proofModeAvailable! ? VineTheme.vineGreen : Colors.orange,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    _proofModeAvailable! ? 'ProofMode' : 'No ProofMode',
-                    style: TextStyle(
-                      color: _proofModeAvailable! ? VineTheme.vineGreen : Colors.orange,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          // ProofMode status indicator - HIDDEN (now shown in Settings -> ProofMode Info)
         ],
       ),
       body: Consumer(
@@ -847,33 +808,7 @@ class _UniversalCameraScreenPureState
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ProofMode indicator
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.green.shade700.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.green.shade400, width: 1.5),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.verified_user, color: Colors.white, size: 16),
-                const SizedBox(width: 6),
-                Text(
-                  'ProofMode Active',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        // ProofMode indicator - HIDDEN (now shown in Settings -> ProofMode Info)
 
         // Platform-specific instruction hint (reserve space to prevent layout shift)
         Padding(
@@ -1517,32 +1452,6 @@ class _UniversalCameraScreenPureState
     String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
     String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
     return '$twoDigitMinutes:$twoDigitSeconds';
-  }
-
-  /// Check if native ProofMode is available on this platform
-  void _checkProofModeAvailability() async {
-    try {
-      final isAvailable = await NativeProofModeService.isAvailable();
-      if (mounted) {
-        setState(() {
-          _proofModeAvailable = isAvailable;
-        });
-        Log.info(
-          '🔐 ProofMode availability: $isAvailable',
-          category: LogCategory.system,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _proofModeAvailable = false;
-        });
-        Log.error(
-          '🔐 Failed to check ProofMode availability: $e',
-          category: LogCategory.system,
-        );
-      }
-    }
   }
 
   /// Show error snackbar at top of screen to avoid blocking controls

@@ -140,10 +140,8 @@ class AuthService {
           name: 'AuthService', category: LogCategory.auth);
       _lastError = 'Failed to initialize auth: $e';
 
-      // Defer state change to avoid setState during build
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _setAuthState(AuthState.unauthenticated);
-      });
+      // Set state synchronously to prevent loading screen deadlock
+      _setAuthState(AuthState.unauthenticated);
     }
   }
 
@@ -527,10 +525,7 @@ class AuthService {
           category: LogCategory.auth);
 
       // Auto-create identity like TikTok - seamless onboarding
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _setAuthState(AuthState.authenticating);
-      });
-
+      // Note: createNewIdentity() sets state to authenticating immediately, so no need to set it here
       final result = await createNewIdentity();
       if (result.success && result.keyContainer != null) {
         Log.info(
@@ -544,16 +539,14 @@ class AuthService {
       } else {
         Log.error('Failed to auto-create identity: ${result.errorMessage}',
             name: 'AuthService', category: LogCategory.auth);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _setAuthState(AuthState.unauthenticated);
-        });
+        // Set state synchronously to prevent loading screen deadlock
+        _setAuthState(AuthState.unauthenticated);
       }
     } catch (e) {
       Log.error('Error checking existing auth: $e',
           name: 'AuthService', category: LogCategory.auth);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _setAuthState(AuthState.unauthenticated);
-      });
+      // Set state synchronously to prevent loading screen deadlock
+      _setAuthState(AuthState.unauthenticated);
     }
   }
 

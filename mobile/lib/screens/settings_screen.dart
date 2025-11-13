@@ -15,6 +15,7 @@ import 'package:openvine/screens/safety_settings_screen.dart';
 import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/widgets/bug_report_dialog.dart';
 import 'package:openvine/widgets/delete_account_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -174,6 +175,13 @@ class SettingsScreen extends ConsumerWidget {
 
           // Support
           _buildSectionHeader('Support'),
+          _buildSettingsTile(
+            context,
+            icon: Icons.verified_user,
+            title: 'ProofMode Info',
+            subtitle: 'Learn about ProofMode verification and authenticity',
+            onTap: () => _openProofModeInfo(context),
+          ),
           _buildSettingsTile(
             context,
             icon: Icons.bug_report,
@@ -383,5 +391,34 @@ class SettingsScreen extends ConsumerWidget {
         }
       },
     );
+  }
+
+  /// Open ProofMode info page at divine.video/proofmode
+  Future<void> _openProofModeInfo(BuildContext context) async {
+    final url = Uri.parse('https://divine.video/proofmode');
+
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not open ProofMode info page'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to open URL: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

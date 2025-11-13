@@ -6,6 +6,7 @@ import 'dart:convert';
 
 import 'package:nostr_sdk/event.dart';
 import 'package:nostr_sdk/filter.dart';
+import 'package:openvine/models/video_event.dart';
 import 'package:openvine/providers/app_providers.dart';
 import 'package:openvine/providers/home_feed_provider.dart';
 import 'package:openvine/services/auth_service.dart';
@@ -583,6 +584,101 @@ class SocialNotifier extends _$SocialNotifier {
           name: 'SocialNotifier', category: LogCategory.system);
     } catch (e) {
       Log.error('Error reposting event: $e',
+          name: 'SocialNotifier', category: LogCategory.system);
+      // Check if provider was disposed during error handling
+      if (!ref.mounted) {
+        Log.warning('Provider disposed during repost error handling - aborting',
+            name: 'SocialNotifier', category: LogCategory.system);
+        return;
+      }
+      state = state.copyWith(error: e.toString());
+      rethrow;
+    } finally {
+      // Check if provider was disposed before cleanup
+      if (ref.mounted) {
+        // Remove from in-progress set
+        final newRepostsInProgress = {...state.repostsInProgress}
+          ..remove(eventId);
+        state = state.copyWith(repostsInProgress: newRepostsInProgress);
+      }
+    }
+  }
+
+  /// Toggle repost on/off for a video event (repost/unrepost)
+  Future<void> toggleRepost(VideoEvent video) async {
+    final authService = ref.read(authServiceProvider);
+
+    if (!authService.isAuthenticated) {
+      Log.error('Cannot toggle repost - user not authenticated',
+          name: 'SocialNotifier', category: LogCategory.system);
+      return;
+    }
+
+    final eventId = video.id;
+
+    // Check if operation is already in progress
+    if (state.isRepostInProgress(eventId)) {
+      Log.debug('Repost operation already in progress for $eventId',
+          name: 'SocialNotifier', category: LogCategory.system);
+      return;
+    }
+
+    Log.debug('🔄 Toggling repost for event: ${eventId}...',
+        name: 'SocialNotifier', category: LogCategory.system);
+
+    // Add to in-progress set
+    state = state.copyWith(
+      repostsInProgress: {...state.repostsInProgress, eventId},
+    );
+
+    try {
+      final wasReposted = state.hasReposted(eventId);
+
+      if (!wasReposted) {
+        // Repost the video
+        final socialService = ref.read(socialServiceProvider);
+        await socialService.toggleRepost(video);
+
+        // Check if provider was disposed during async operation
+        if (!ref.mounted) {
+          Log.warning('Provider disposed during repost operation - aborting',
+              name: 'SocialNotifier', category: LogCategory.system);
+          return;
+        }
+
+        // Update state - add to reposted set
+        final addressableId = '32222:${video.pubkey}:${video.rawTags['d']}';
+        state = state.copyWith(
+          repostedEventIds: {...state.repostedEventIds, addressableId},
+        );
+
+        Log.info('Repost published for video: ${eventId}...',
+            name: 'SocialNotifier', category: LogCategory.system);
+      } else {
+        // Unrepost the video
+        final socialService = ref.read(socialServiceProvider);
+        await socialService.toggleRepost(video);
+
+        // Check if provider was disposed during async operation
+        if (!ref.mounted) {
+          Log.warning('Provider disposed during unrepost operation - aborting',
+              name: 'SocialNotifier', category: LogCategory.system);
+          return;
+        }
+
+        // Update state - remove from reposted set
+        final addressableId = '32222:${video.pubkey}:${video.rawTags['d']}';
+        final newRepostedEventIds = {...state.repostedEventIds}..remove(addressableId);
+
+        state = state.copyWith(
+          repostedEventIds: newRepostedEventIds,
+        );
+
+        Log.info('Unrepost published for video: ${eventId}...',
+            name: 'SocialNotifier', category: LogCategory.system);
+      }
+    } catch (e) {
+      Log.error('Error toggling repost: $e',
           name: 'SocialNotifier', category: LogCategory.system);
       // Check if provider was disposed during error handling
       if (!ref.mounted) {

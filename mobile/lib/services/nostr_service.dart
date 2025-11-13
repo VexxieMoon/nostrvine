@@ -153,7 +153,7 @@ class NostrService implements INostrService {
           CrashReportingService.instance.logInitializationStep('Starting embedded relay initialization');
           await _embeddedRelay!.initialize(
             logLevel: logging.Level.WARNING, // Reduce logging spam - only warnings and errors
-            enableGarbageCollection: true,
+            enableGarbageCollection: false, // CRITICAL: Disabled - GC was deleting events too aggressively
           );
           Log.info('Embedded relay initialized successfully',
               name: 'NostrService', category: LogCategory.relay);
@@ -781,7 +781,7 @@ class NostrService implements INostrService {
         try {
           await _embeddedRelay!.initialize(
             logLevel: logging.Level.WARNING, // Reduce logging spam - only warnings and errors
-            enableGarbageCollection: true,
+            enableGarbageCollection: false, // CRITICAL: Disabled - GC was deleting events too aggressively
           );
           Log.info('Embedded relay reinitialized successfully',
               name: 'NostrService', category: LogCategory.relay);
@@ -836,7 +836,7 @@ class NostrService implements INostrService {
             // Create a new embedded relay instance
             _embeddedRelay = embedded.EmbeddedNostrRelay();
             await _embeddedRelay!.initialize(
-              enableGarbageCollection: false, // TEMPORARY: Disable GC to test storage issue
+              enableGarbageCollection: false, // CRITICAL: Disabled - GC was deleting events too aggressively
             );
 
             // Re-add external relays
@@ -1052,7 +1052,7 @@ class NostrService implements INostrService {
       _embeddedRelay = embedded.EmbeddedNostrRelay();
       await _embeddedRelay!.initialize(
         logLevel: logging.Level.WARNING, // Reduce logging spam - only warnings and errors
-        enableGarbageCollection: true,
+        enableGarbageCollection: false, // CRITICAL: Disabled - GC was deleting events too aggressively
       );
       UnifiedLogger.info('Embedded relay initialized on retry',
           name: 'NostrService');

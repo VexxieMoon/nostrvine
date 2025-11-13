@@ -12,6 +12,7 @@ import 'package:nostr_sdk/event.dart' as _i7;
 import 'package:nostr_sdk/filter.dart' as _i8;
 import 'package:openvine/models/nip94_metadata.dart' as _i9;
 import 'package:openvine/models/user_profile.dart' as _i11;
+import 'package:openvine/models/video_event.dart' as _i15;
 import 'package:openvine/services/auth_service.dart' as _i4;
 import 'package:openvine/services/nostr_key_manager.dart' as _i2;
 import 'package:openvine/services/nostr_service_interface.dart' as _i3;
@@ -978,6 +979,15 @@ class MockSocialService extends _i1.Mock implements _i14.SocialService {
   _i5.Future<void> cancelCommentSubscriptions(String? rootEventId) =>
       (super.noSuchMethod(
             Invocation.method(#cancelCommentSubscriptions, [rootEventId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> toggleRepost(_i15.VideoEvent? videoToRepost) =>
+      (super.noSuchMethod(
+            Invocation.method(#toggleRepost, [videoToRepost]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )

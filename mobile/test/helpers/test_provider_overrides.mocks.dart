@@ -4,21 +4,22 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i6;
-import 'dart:ui' as _i15;
+import 'dart:ui' as _i16;
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i10;
+import 'package:mockito/src/dummies.dart' as _i11;
 import 'package:nostr_sdk/event.dart' as _i8;
-import 'package:nostr_sdk/filter.dart' as _i11;
-import 'package:openvine/models/nip94_metadata.dart' as _i12;
-import 'package:openvine/models/user_profile.dart' as _i13;
+import 'package:nostr_sdk/filter.dart' as _i12;
+import 'package:openvine/models/nip94_metadata.dart' as _i13;
+import 'package:openvine/models/user_profile.dart' as _i14;
+import 'package:openvine/models/video_event.dart' as _i9;
 import 'package:openvine/services/auth_service.dart' as _i2;
 import 'package:openvine/services/nostr_key_manager.dart' as _i3;
 import 'package:openvine/services/nostr_service_interface.dart' as _i4;
-import 'package:openvine/services/profile_cache_service.dart' as _i14;
+import 'package:openvine/services/profile_cache_service.dart' as _i15;
 import 'package:openvine/services/social_service.dart' as _i7;
-import 'package:openvine/services/subscription_manager.dart' as _i16;
-import 'package:openvine/services/user_profile_service.dart' as _i9;
+import 'package:openvine/services/subscription_manager.dart' as _i17;
+import 'package:openvine/services/user_profile_service.dart' as _i10;
 import 'package:shared_preferences/shared_preferences.dart' as _i5;
 
 // ignore_for_file: type=lint
@@ -443,6 +444,15 @@ class MockSocialService extends _i1.Mock implements _i7.SocialService {
           as _i6.Future<void>);
 
   @override
+  _i6.Future<void> toggleRepost(_i9.VideoEvent? videoToRepost) =>
+      (super.noSuchMethod(
+            Invocation.method(#toggleRepost, [videoToRepost]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
   _i6.Future<void> repostEvent(_i8.Event? eventToRepost) =>
       (super.noSuchMethod(
             Invocation.method(#repostEvent, [eventToRepost]),
@@ -591,7 +601,7 @@ class MockAuthService extends _i1.Mock implements _i2.AuthService {
 
   @override
   _i6.Future<void> refreshCurrentProfile(
-    _i9.UserProfileService? userProfileService,
+    _i10.UserProfileService? userProfileService,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#refreshCurrentProfile, [userProfileService]),
@@ -750,7 +760,7 @@ class MockINostrService extends _i1.Mock implements _i4.INostrService {
   String get primaryRelay =>
       (super.noSuchMethod(
             Invocation.getter(#primaryRelay),
-            returnValue: _i10.dummyValue<String>(
+            returnValue: _i11.dummyValue<String>(
               this,
               Invocation.getter(#primaryRelay),
             ),
@@ -782,7 +792,7 @@ class MockINostrService extends _i1.Mock implements _i4.INostrService {
 
   @override
   _i6.Stream<_i8.Event> subscribeToEvents({
-    required List<_i11.Filter>? filters,
+    required List<_i12.Filter>? filters,
     bool? bypassLimits = false,
     void Function()? onEose,
   }) =>
@@ -811,7 +821,7 @@ class MockINostrService extends _i1.Mock implements _i4.INostrService {
 
   @override
   _i6.Future<_i4.NostrBroadcastResult> publishFileMetadata({
-    required _i12.NIP94Metadata? metadata,
+    required _i13.NIP94Metadata? metadata,
     required String? content,
     List<String>? hashtags = const [],
   }) =>
@@ -888,7 +898,7 @@ class MockINostrService extends _i1.Mock implements _i4.INostrService {
 
   @override
   _i6.Future<List<_i8.Event>> getEvents({
-    required List<_i11.Filter>? filters,
+    required List<_i12.Filter>? filters,
     int? limit,
   }) =>
       (super.noSuchMethod(
@@ -952,18 +962,18 @@ class MockINostrService extends _i1.Mock implements _i4.INostrService {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockUserProfileService extends _i1.Mock
-    implements _i9.UserProfileService {
+    implements _i10.UserProfileService {
   MockUserProfileService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  Map<String, _i13.UserProfile> get allProfiles =>
+  Map<String, _i14.UserProfile> get allProfiles =>
       (super.noSuchMethod(
             Invocation.getter(#allProfiles),
-            returnValue: <String, _i13.UserProfile>{},
+            returnValue: <String, _i14.UserProfile>{},
           )
-          as Map<String, _i13.UserProfile>);
+          as Map<String, _i14.UserProfile>);
 
   @override
   bool get hasListeners =>
@@ -971,16 +981,16 @@ class MockUserProfileService extends _i1.Mock
           as bool);
 
   @override
-  void setPersistentCache(_i14.ProfileCacheService? cacheService) =>
+  void setPersistentCache(_i15.ProfileCacheService? cacheService) =>
       super.noSuchMethod(
         Invocation.method(#setPersistentCache, [cacheService]),
         returnValueForMissingStub: null,
       );
 
   @override
-  _i13.UserProfile? getCachedProfile(String? pubkey) =>
+  _i14.UserProfile? getCachedProfile(String? pubkey) =>
       (super.noSuchMethod(Invocation.method(#getCachedProfile, [pubkey]))
-          as _i13.UserProfile?);
+          as _i14.UserProfile?);
 
   @override
   bool hasProfile(String? pubkey) =>
@@ -1005,7 +1015,7 @@ class MockUserProfileService extends _i1.Mock
   );
 
   @override
-  _i6.Future<void> updateCachedProfile(_i13.UserProfile? profile) =>
+  _i6.Future<void> updateCachedProfile(_i14.UserProfile? profile) =>
       (super.noSuchMethod(
             Invocation.method(#updateCachedProfile, [profile]),
             returnValue: _i6.Future<void>.value(),
@@ -1023,7 +1033,7 @@ class MockUserProfileService extends _i1.Mock
           as _i6.Future<void>);
 
   @override
-  _i6.Future<_i13.UserProfile?> fetchProfile(
+  _i6.Future<_i14.UserProfile?> fetchProfile(
     String? pubkey, {
     bool? forceRefresh = false,
   }) =>
@@ -1033,9 +1043,9 @@ class MockUserProfileService extends _i1.Mock
               [pubkey],
               {#forceRefresh: forceRefresh},
             ),
-            returnValue: _i6.Future<_i13.UserProfile?>.value(),
+            returnValue: _i6.Future<_i14.UserProfile?>.value(),
           )
-          as _i6.Future<_i13.UserProfile?>);
+          as _i6.Future<_i14.UserProfile?>);
 
   @override
   _i6.Future<void> prefetchProfilesImmediately(List<String>? pubkeys) =>
@@ -1066,7 +1076,7 @@ class MockUserProfileService extends _i1.Mock
   String getDisplayName(String? pubkey) =>
       (super.noSuchMethod(
             Invocation.method(#getDisplayName, [pubkey]),
-            returnValue: _i10.dummyValue<String>(
+            returnValue: _i11.dummyValue<String>(
               this,
               Invocation.method(#getDisplayName, [pubkey]),
             ),
@@ -1115,13 +1125,13 @@ class MockUserProfileService extends _i1.Mock
   );
 
   @override
-  void addListener(_i15.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i16.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i15.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i16.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -1137,7 +1147,7 @@ class MockUserProfileService extends _i1.Mock
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockSubscriptionManager extends _i1.Mock
-    implements _i16.SubscriptionManager {
+    implements _i17.SubscriptionManager {
   MockSubscriptionManager() {
     _i1.throwOnMissingStub(this);
   }
@@ -1173,7 +1183,7 @@ class MockSubscriptionManager extends _i1.Mock
   @override
   _i6.Future<String> createSubscription({
     required String? name,
-    required List<_i11.Filter>? filters,
+    required List<_i12.Filter>? filters,
     required dynamic Function(_i8.Event)? onEvent,
     dynamic Function(dynamic)? onError,
     dynamic Function()? onComplete,
@@ -1191,7 +1201,7 @@ class MockSubscriptionManager extends _i1.Mock
               #priority: priority,
             }),
             returnValue: _i6.Future<String>.value(
-              _i10.dummyValue<String>(
+              _i11.dummyValue<String>(
                 this,
                 Invocation.method(#createSubscription, [], {
                   #name: name,

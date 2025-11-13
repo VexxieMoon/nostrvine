@@ -174,6 +174,12 @@ class MockVideoCacheManager extends _i1.Mock implements _i6.VideoCacheManager {
           as _i7.Future<void>);
 
   @override
+  void resetForTesting() => super.noSuchMethod(
+    Invocation.method(#resetForTesting, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   _i7.Future<_i5.File> getSingleFile(
     String? url, {
     String? key,

@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.0.1+88
+version: 0.0.1+95
 
 environment:
   sdk: '>=3.8.0 <4.0.0'
@@ -53,7 +53,7 @@ dependencies:
 
   # P2P Connectivity for Video Sharing
   flutter_blue_plus: ^2.0.0  # BLE for metadata sync
-  wifi_iot: ^0.3.18  # WiFi Direct for Android high-bandwidth sharing
+  # wifi_iot: ^0.3.18  # WiFi Direct for Android high-bandwidth sharing - Removed: not implemented, causes iOS build issues
   permission_handler: ^12.0.1  # Handle runtime permissions
 
   # Camera and media

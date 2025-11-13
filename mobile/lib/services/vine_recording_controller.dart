@@ -928,7 +928,7 @@ class VineRecordingController {
 
   // Recording session data
   final List<RecordingSegment> _segments = [];
-  model.AspectRatio _aspectRatio = model.AspectRatio.square;
+  model.AspectRatio _aspectRatio = model.AspectRatio.vertical; // Default to 9:16 vertical
   DateTime? _currentSegmentStartTime;
   Timer? _progressTimer;
   Timer? _maxDurationTimer;

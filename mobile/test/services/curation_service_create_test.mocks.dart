@@ -1299,6 +1299,15 @@ class MockSocialService extends _i1.Mock implements _i15.SocialService {
           as _i5.Future<void>);
 
   @override
+  _i5.Future<void> toggleRepost(_i11.VideoEvent? videoToRepost) =>
+      (super.noSuchMethod(
+            Invocation.method(#toggleRepost, [videoToRepost]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
   _i5.Future<void> repostEvent(_i7.Event? eventToRepost) =>
       (super.noSuchMethod(
             Invocation.method(#repostEvent, [eventToRepost]),

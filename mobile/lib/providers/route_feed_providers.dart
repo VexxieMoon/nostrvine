@@ -17,6 +17,10 @@ import 'package:openvine/state/video_feed_state.dart';
 /// ExploreVideoScreenPure and activeVideoIdProvider to ensure they use the same list
 final exploreTabVideosProvider = StateProvider<List<VideoEvent>?>((ref) => null);
 
+/// Provider to persist the current tab index across widget recreation
+/// Default to 1 (Popular Videos) as initial state
+final exploreTabIndexProvider = StateProvider<int>((ref) => 1);
+
 /// Temporary provider to hold the search screen's current video list
 /// This is set by SearchScreenPure when search results are available and consumed
 /// by activeVideoIdProvider to enable video playback from search results

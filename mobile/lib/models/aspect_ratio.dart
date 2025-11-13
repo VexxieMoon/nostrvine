@@ -3,6 +3,6 @@
 
 /// Aspect ratio options for video recording
 enum AspectRatio {
-  square,   // 1:1 (default, classic Vine)
-  vertical, // 9:16 (modern vertical video)
+  square,   // 1:1 (classic Vine)
+  vertical, // 9:16 (default, modern vertical video)
 }

@@ -225,6 +225,19 @@ AuthService authService(Ref ref) {
   return AuthService(keyStorage: keyStorage);
 }
 
+/// Stream provider for reactive auth state changes
+/// Widgets should watch this instead of authService.authState to get rebuilds
+@riverpod
+Stream<AuthState> authStateStream(Ref ref) async* {
+  final authService = ref.watch(authServiceProvider);
+
+  // Emit current state immediately
+  yield authService.authState;
+
+  // Then emit all future changes
+  yield* authService.authStateStream;
+}
+
 
 /// Core Nostr service with platform-aware embedded relay functionality and P2P capabilities
 @Riverpod(keepAlive: true)

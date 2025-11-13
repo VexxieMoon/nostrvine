@@ -7,9 +7,10 @@ import 'dart:async' as _i4;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:nostr_sdk/event.dart' as _i5;
+import 'package:openvine/models/video_event.dart' as _i6;
 import 'package:openvine/services/auth_service.dart' as _i2;
 import 'package:openvine/services/social_service.dart' as _i3;
-import 'package:openvine/services/user_profile_service.dart' as _i6;
+import 'package:openvine/services/user_profile_service.dart' as _i7;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -298,6 +299,15 @@ class MockSocialService extends _i1.Mock implements _i3.SocialService {
           as _i4.Future<void>);
 
   @override
+  _i4.Future<void> toggleRepost(_i6.VideoEvent? videoToRepost) =>
+      (super.noSuchMethod(
+            Invocation.method(#toggleRepost, [videoToRepost]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
   _i4.Future<void> repostEvent(_i5.Event? eventToRepost) =>
       (super.noSuchMethod(
             Invocation.method(#repostEvent, [eventToRepost]),
@@ -446,7 +456,7 @@ class MockAuthService extends _i1.Mock implements _i2.AuthService {
 
   @override
   _i4.Future<void> refreshCurrentProfile(
-    _i6.UserProfileService? userProfileService,
+    _i7.UserProfileService? userProfileService,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#refreshCurrentProfile, [userProfileService]),

@@ -14,6 +14,7 @@ import 'package:openvine/services/personal_event_cache_service.dart';
 import 'package:openvine/services/subscription_manager.dart';
 import 'package:openvine/utils/unified_logger.dart';
 import 'package:openvine/constants/nip71_migration.dart';
+import 'package:openvine/models/video_event.dart';
 
 /// Represents a follow set (NIP-51 Kind 30000)
 class FollowSet {
@@ -1624,6 +1625,129 @@ class SocialService {
   }
 
   // === REPOST SYSTEM (NIP-18) ===
+
+  /// Toggles repost state for a video event (repost/unrepost)
+  /// Uses NIP-18 for repost (Kind 6) and NIP-09 for unrepost (Kind 5)
+  Future<void> toggleRepost(VideoEvent videoToRepost) async {
+    if (!_authService.isAuthenticated) {
+      Log.error('Cannot repost - user not authenticated',
+          name: 'SocialService', category: LogCategory.system);
+      throw Exception('User not authenticated');
+    }
+
+    Log.debug('🔄 Toggling repost for video: ${videoToRepost.id}',
+        name: 'SocialService', category: LogCategory.system);
+
+    // Extract d-tag from video's rawTags
+    final dTagValue = videoToRepost.rawTags['d'];
+    if (dTagValue == null || dTagValue.isEmpty) {
+      throw Exception('Cannot repost: Video event missing required d tag');
+    }
+
+    // Check repost state using addressable ID format
+    final addressableId = '32222:${videoToRepost.pubkey}:$dTagValue';
+    final wasReposted = _repostedEventIds.contains(addressableId);
+
+    try {
+      if (!wasReposted) {
+        // Repost the video
+        Log.debug('➕ Adding repost for video: ${videoToRepost.id}',
+            name: 'SocialService', category: LogCategory.system);
+
+        // Create NIP-18 repost event (Kind 6)
+        final event = await _authService.createAndSignEvent(
+          kind: 6,
+          content: '',
+          tags: [
+            ['a', addressableId],
+            ['p', videoToRepost.pubkey],
+          ],
+        );
+
+        if (event == null) {
+          throw Exception('Failed to create repost event');
+        }
+
+        // Cache immediately
+        _personalEventCache?.cacheUserEvent(event);
+
+        // Broadcast
+        final result = await _nostrService.broadcastEvent(event);
+        if (!result.isSuccessful) {
+          final errorMessages = result.errors.values.join(', ');
+          throw Exception('Failed to broadcast repost: $errorMessages');
+        }
+
+        // Update local state
+        _repostedEventIds.add(addressableId);
+        _repostEventIdToRepostId[addressableId] = event.id;
+
+        Log.info('Repost published for video: ${videoToRepost.id}',
+            name: 'SocialService', category: LogCategory.system);
+      } else {
+        // Unrepost by publishing NIP-09 deletion event
+        Log.debug('➖ Removing repost for video: ${videoToRepost.id}',
+            name: 'SocialService', category: LogCategory.system);
+
+        final repostEventId = _repostEventIdToRepostId[addressableId];
+        if (repostEventId != null) {
+          await _unrepostEvent(repostEventId);
+
+          // Update local state
+          _repostedEventIds.remove(addressableId);
+          _repostEventIdToRepostId.remove(addressableId);
+
+          Log.info('Unrepost (deletion) published for video: ${videoToRepost.id}',
+              name: 'SocialService', category: LogCategory.system);
+        } else {
+          Log.warning('Cannot unrepost - repost event ID not found',
+              name: 'SocialService', category: LogCategory.system);
+
+          // Fallback: remove from local state only
+          _repostedEventIds.remove(addressableId);
+        }
+      }
+    } catch (e) {
+      Log.error('Error toggling repost: $e',
+          name: 'SocialService', category: LogCategory.system);
+      rethrow;
+    }
+  }
+
+  /// Publishes a NIP-09 deletion event for unrepost functionality
+  Future<void> _unrepostEvent(String repostEventId) async {
+    try {
+      // Create NIP-09 deletion event (Kind 5)
+      final event = await _authService.createAndSignEvent(
+        kind: 5,
+        content: 'Unreposted',
+        tags: [
+          ['e', repostEventId], // Reference to the repost event to delete
+        ],
+      );
+
+      if (event == null) {
+        throw Exception('Failed to create unrepost deletion event');
+      }
+
+      // Cache immediately
+      _personalEventCache?.cacheUserEvent(event);
+
+      // Broadcast
+      final result = await _nostrService.broadcastEvent(event);
+      if (!result.isSuccessful) {
+        final errorMessages = result.errors.values.join(', ');
+        throw Exception('Failed to broadcast unrepost: $errorMessages');
+      }
+
+      Log.debug('Unrepost deletion event broadcasted: ${event.id}',
+          name: 'SocialService', category: LogCategory.system);
+    } catch (e) {
+      Log.error('Error publishing unrepost deletion: $e',
+          name: 'SocialService', category: LogCategory.system);
+      rethrow;
+    }
+  }
 
   /// Reposts a Nostr event (Kind 6)
   Future<void> repostEvent(Event eventToRepost) async {

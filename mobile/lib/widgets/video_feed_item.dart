@@ -20,7 +20,6 @@ import 'package:openvine/screens/comments_screen.dart';
 import 'package:openvine/services/visibility_tracker.dart';
 import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/ui/overlay_policy.dart';
-import 'package:openvine/widgets/video_thumbnail_widget.dart';
 import 'package:openvine/utils/unified_logger.dart';
 import 'package:openvine/widgets/share_video_menu.dart';
 import 'package:openvine/widgets/video_error_overlay.dart';
@@ -564,29 +563,14 @@ class VideoOverlayActions extends ConsumerWidget {
     final isLikeInProgress = socialState.isLikeInProgress(video.id);
     final likeCount = socialState.likeCounts[video.id] ?? 0;
 
+    // Check if there's meaningful text content to display
+    final hasTextContent = video.content.isNotEmpty ||
+                          (video.title != null && video.title!.isNotEmpty);
+
     // Stack does not block pointer events by default - taps pass through to GestureDetector below
     // Only interactive elements (buttons, chips with GestureDetector) absorb taps
     return Stack(
         children: [
-        // Blurhash background for bottom section (behind everything else)
-        // Wrapped in IgnorePointer to ensure it never blocks touch events
-        if (video.blurhash != null && video.blurhash!.isNotEmpty)
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 250, // Height of metadata area
-            child: IgnorePointer(
-              child: AnimatedOpacity(
-                opacity: isActive ? 0.4 : 0.0, // Subtle opacity so it doesn't overpower
-                duration: const Duration(milliseconds: 200),
-                child: BlurhashDisplay(
-                  blurhash: video.blurhash!,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          ),
         // Username and follow button at top left
         Positioned(
           top: MediaQuery.of(context).viewPadding.top + 16,
@@ -713,118 +697,97 @@ class VideoOverlayActions extends ConsumerWidget {
             ),
           ),
         ),
-        // Gradient background for bottom section (metadata + action buttons)
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: AnimatedOpacity(
-            opacity: isActive ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 200),
-            child: Container(
-              padding: EdgeInsets.only(
-                bottom: hasBottomNavigation ? 80 : 16,
-                top: 100,
-              ),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.9),
-                    Colors.black.withValues(alpha: 0.6),
-                    Colors.transparent,
-                  ],
-                  stops: const [0.0, 0.5, 1.0],
-                ),
-              ),
-            ),
-          ),
-        ),
+        // No gradient - using text background opacity instead for cleaner appearance
         // Video title overlay at bottom left
-        Positioned(
-          bottom: hasBottomNavigation ? 80 : 16,
-          left: 16,
-          right: 80, // Leave space for action buttons
-          child: AnimatedOpacity(
-            opacity: isActive ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 200),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Video title with clickable hashtags
-                ClickableHashtagText(
-                  text: video.content.isNotEmpty ? video.content : video.title ?? 'Untitled',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    height: 1.3,
-                    shadows: [
-                      Shadow(
-                        offset: Offset(0, 0),
-                        blurRadius: 8,
-                        color: Colors.black,
-                      ),
-                      Shadow(
-                        offset: Offset(2, 2),
-                        blurRadius: 4,
-                        color: Colors.black,
-                      ),
-                    ],
-                  ),
-                  hashtagStyle: TextStyle(
-                    color: VineTheme.vineGreen,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    height: 1.3,
-                    shadows: const [
-                      Shadow(
-                        offset: Offset(0, 0),
-                        blurRadius: 8,
-                        color: Colors.black,
-                      ),
-                      Shadow(
-                        offset: Offset(2, 2),
-                        blurRadius: 4,
-                        color: Colors.black,
-                      ),
-                    ],
-                  ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
+        // Only show if there's actual text content
+        if (hasTextContent)
+          Positioned(
+            bottom: hasBottomNavigation ? 80 : 16,
+            left: 16,
+            right: 80, // Leave space for action buttons
+            child: AnimatedOpacity(
+              opacity: isActive ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(height: 4),
-                // Show original loop count if available
-                if (video.originalLoops != null && video.originalLoops! > 0) ...[
-                  Text(
-                    '🔁 ${StringUtils.formatCompactNumber(video.originalLoops!)} loops',
+                child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Video title with clickable hashtags
+                  ClickableHashtagText(
+                    text: video.content.isNotEmpty ? video.content : video.title!,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      height: 1.3,
                       shadows: [
                         Shadow(
                           offset: Offset(0, 0),
-                          blurRadius: 6,
+                          blurRadius: 8,
                           color: Colors.black,
                         ),
                         Shadow(
-                          offset: Offset(1, 1),
-                          blurRadius: 3,
+                          offset: Offset(2, 2),
+                          blurRadius: 4,
                           color: Colors.black,
                         ),
                       ],
                     ),
+                    hashtagStyle: TextStyle(
+                      color: VineTheme.vineGreen,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      height: 1.3,
+                      shadows: const [
+                        Shadow(
+                          offset: Offset(0, 0),
+                          blurRadius: 8,
+                          color: Colors.black,
+                        ),
+                        Shadow(
+                          offset: Offset(2, 2),
+                          blurRadius: 4,
+                          color: Colors.black,
+                        ),
+                      ],
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
+                  // Show original loop count if available
+                  if (video.originalLoops != null && video.originalLoops! > 0) ...[
+                    Text(
+                      '🔁 ${StringUtils.formatCompactNumber(video.originalLoops!)} loops',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        shadows: [
+                          Shadow(
+                            offset: Offset(0, 0),
+                            blurRadius: 6,
+                            color: Colors.black,
+                          ),
+                          Shadow(
+                            offset: Offset(1, 1),
+                            blurRadius: 3,
+                            color: Colors.black,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
           ),
         ),
         // Action buttons at bottom right
@@ -942,6 +905,71 @@ class VideoOverlayActions extends ConsumerWidget {
                 ),
               ],
             ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Repost/Revine button with count
+          Builder(
+            builder: (context) {
+              // Construct addressable ID for repost state check
+              final dTag = video.rawTags['d'];
+              final addressableId = dTag != null ? '32222:${video.pubkey}:$dTag' : video.id;
+              final isReposted = socialState.hasReposted(addressableId);
+
+              return Column(
+                children: [
+                  _buildCircularIconButton(
+                    onPressed: socialState.isRepostInProgress(video.id) ? () {} : () async {
+                      Log.info(
+                        '🔁 Repost button tapped for ${video.id}',
+                        name: 'VideoFeedItem',
+                        category: LogCategory.ui,
+                      );
+                      await ref.read(socialProvider.notifier).toggleRepost(video);
+                    },
+                    icon: socialState.isRepostInProgress(video.id)
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Icon(
+                          Icons.repeat,
+                          color: isReposted ? VineTheme.vineGreen : Colors.white,
+                          size: 32,
+                        ),
+                  ),
+                  // Show original repost count if available
+                  if (video.originalReposts != null && video.originalReposts! > 0) ...[
+                    const SizedBox(height: 0),
+                    Text(
+                      StringUtils.formatCompactNumber(video.originalReposts!),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            offset: Offset(0, 0),
+                            blurRadius: 6,
+                            color: Colors.black,
+                          ),
+                          Shadow(
+                            offset: Offset(1, 1),
+                            blurRadius: 3,
+                            color: Colors.black,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
 
           const SizedBox(height: 16),

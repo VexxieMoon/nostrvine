@@ -979,6 +979,48 @@ final class AuthServiceProvider
 
 String _$authServiceHash() => r'7d7fae6e9bce96247f58dc43b2b87a289dd3e08b';
 
+/// Stream provider for reactive auth state changes
+/// Widgets should watch this instead of authService.authState to get rebuilds
+
+@ProviderFor(authStateStream)
+const authStateStreamProvider = AuthStateStreamProvider._();
+
+/// Stream provider for reactive auth state changes
+/// Widgets should watch this instead of authService.authState to get rebuilds
+
+final class AuthStateStreamProvider
+    extends
+        $FunctionalProvider<AsyncValue<AuthState>, AuthState, Stream<AuthState>>
+    with $FutureModifier<AuthState>, $StreamProvider<AuthState> {
+  /// Stream provider for reactive auth state changes
+  /// Widgets should watch this instead of authService.authState to get rebuilds
+  const AuthStateStreamProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'authStateStreamProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$authStateStreamHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<AuthState> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<AuthState> create(Ref ref) {
+    return authStateStream(ref);
+  }
+}
+
+String _$authStateStreamHash() => r'bd5c1864e57cfd46c9676d3dc1fe3aa358c2a14b';
+
 /// Core Nostr service with platform-aware embedded relay functionality and P2P capabilities
 
 @ProviderFor(nostrService)

@@ -51,7 +51,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this, initialIndex: 1); // Start on Popular Videos
+
+    // Restore tab index from provider to survive widget recreation
+    final savedTabIndex = ref.read(exploreTabIndexProvider);
+    _tabController = TabController(length: 3, vsync: this, initialIndex: savedTabIndex);
     _tabController.addListener(_onTabChanged);
 
     // Track screen load
@@ -113,6 +116,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
 
     Log.debug('🎯 ExploreScreenPure: Switched to tab ${_tabController.index}',
         category: LogCategory.video);
+
+    // Persist tab index to survive widget recreation
+    ref.read(exploreTabIndexProvider.notifier).state = _tabController.index;
 
     // Track tab change
     _screenAnalytics.trackTabChange(

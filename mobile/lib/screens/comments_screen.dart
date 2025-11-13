@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:openvine/models/video_event.dart';
 import 'package:openvine/providers/app_providers.dart';
 import 'package:openvine/providers/comments_provider.dart';
+import 'package:openvine/providers/user_profile_providers.dart';
+import 'package:openvine/router/nav_extensions.dart';
 import 'package:openvine/widgets/user_avatar.dart';
 import 'package:openvine/widgets/video_feed_item.dart';
 
@@ -258,30 +260,71 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
             children: [
               Row(
                 children: [
-                  UserAvatar(
-                    name: comment.shortAuthorPubkey,
-                    size: 32,
+                  Consumer(
+                    builder: (context, ref, _) {
+                      // Fetch profile for this comment author
+                      final userProfileService = ref.watch(userProfileServiceProvider);
+                      final profile = userProfileService.getCachedProfile(comment.authorPubkey);
+
+                      // If profile not cached and not known missing, fetch it
+                      if (profile == null && !userProfileService.shouldSkipProfileFetch(comment.authorPubkey)) {
+                        Future.microtask(() {
+                          ref.read(userProfileProvider.notifier).fetchProfile(comment.authorPubkey);
+                        });
+                      }
+
+                      final display = profile?.bestDisplayName ??
+                                      profile?.displayName ??
+                                      profile?.name ??
+                                      'Loading...';
+
+                      return UserAvatar(
+                        name: display,
+                        size: 32,
+                      );
+                    },
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          comment.shortAuthorPubkey,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          comment.relativeTime,
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+                    child: Consumer(
+                      builder: (context, ref, _) {
+                        // Fetch profile for display name
+                        final userProfileService = ref.watch(userProfileServiceProvider);
+                        final profile = userProfileService.getCachedProfile(comment.authorPubkey);
+
+                        final display = profile?.bestDisplayName ??
+                                        profile?.displayName ??
+                                        profile?.name ??
+                                        'Loading...';
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                // Navigate to profile screen
+                                context.goProfileGrid(comment.authorPubkey);
+                              },
+                              child: Text(
+                                display,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: Colors.white54,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              comment.relativeTime,
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],

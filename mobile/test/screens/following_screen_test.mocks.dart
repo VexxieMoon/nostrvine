@@ -10,6 +10,7 @@ import 'package:mockito/src/dummies.dart' as _i7;
 import 'package:nostr_sdk/event.dart' as _i8;
 import 'package:nostr_sdk/filter.dart' as _i9;
 import 'package:openvine/models/nip94_metadata.dart' as _i10;
+import 'package:openvine/models/video_event.dart' as _i14;
 import 'package:openvine/services/auth_service.dart' as _i4;
 import 'package:openvine/services/nostr_key_manager.dart' as _i2;
 import 'package:openvine/services/nostr_service.dart' as _i5;
@@ -895,6 +896,15 @@ class MockSocialService extends _i1.Mock implements _i13.SocialService {
   _i6.Future<void> cancelCommentSubscriptions(String? rootEventId) =>
       (super.noSuchMethod(
             Invocation.method(#cancelCommentSubscriptions, [rootEventId]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
+  _i6.Future<void> toggleRepost(_i14.VideoEvent? videoToRepost) =>
+      (super.noSuchMethod(
+            Invocation.method(#toggleRepost, [videoToRepost]),
             returnValue: _i6.Future<void>.value(),
             returnValueForMissingStub: _i6.Future<void>.value(),
           )

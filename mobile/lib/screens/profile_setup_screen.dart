@@ -15,6 +15,7 @@ import 'package:openvine/models/user_profile.dart' as profile_model;
 import 'package:openvine/providers/app_providers.dart';
 import 'package:openvine/providers/user_profile_providers.dart';
 import 'package:openvine/theme/vine_theme.dart';
+import 'package:openvine/utils/async_utils.dart';
 import 'package:openvine/utils/unified_logger.dart';
 
 class ProfileSetupScreen extends ConsumerStatefulWidget {
@@ -39,6 +40,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   bool _isPublishing = false;
   bool _isUploadingImage = false;
   bool _isCheckingUsername = false;
+  bool _isWaitingForRelay = false; // Track relay confirmation phase
   bool? _usernameAvailable;
   String? _usernameError;
   File? _selectedImage;
@@ -601,11 +603,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                                 ),
                               ),
                               child: _isPublishing
-                                  ? const Row(
+                                  ? Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        SizedBox(
+                                        const SizedBox(
                                           width: 20,
                                           height: 20,
                                           child: CircularProgressIndicator(
@@ -613,8 +615,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                                             color: Colors.white,
                                           ),
                                         ),
-                                        SizedBox(width: 12),
-                                        Text('Saving...'),
+                                        const SizedBox(width: 12),
+                                        Text(_isWaitingForRelay
+                                            ? 'Confirming with relay...'
+                                            : 'Saving...'),
                                       ],
                                     )
                                   : const Text(
@@ -849,33 +853,77 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
 
       if (success) {
-        // Immediately update local cache with published profile data
+        // CRITICAL: Wait for relay to confirm it has the updated profile before navigating
+        // This prevents race condition where user navigates back but relay hasn't processed update yet
+        Log.info(
+          '⏳ Waiting for relay to confirm profile update...',
+          name: 'ProfileSetupScreen',
+          category: LogCategory.ui,
+        );
+
+        // Show relay confirmation UI
         if (mounted) {
-          Log.info(
-            '🔄 Updating local cache with published profile...',
-            name: 'ProfileSetupScreen',
-            category: LogCategory.ui,
+          setState(() {
+            _isWaitingForRelay = true;
+          });
+        }
+
+        final userProfileService = ref.read(userProfileServiceProvider);
+
+        try {
+          // Retry with exponential backoff until relay returns updated profile
+          final confirmedProfile = await AsyncUtils.retryWithBackoff<profile_model.UserProfile?>(
+            operation: () async {
+              // Clear cache to force fresh fetch from relay
+              userProfileService.removeProfile(currentPubkey);
+
+              // Fetch profile from relay
+              final fetchedProfile = await userProfileService.fetchProfile(
+                currentPubkey,
+                forceRefresh: true,
+              );
+
+              Log.debug(
+                'Profile fetch attempt: eventId=${fetchedProfile?.eventId}, '
+                'timestamp=${fetchedProfile?.createdAt.millisecondsSinceEpoch}, '
+                'expected eventId=${event.id}, '
+                'expected timestamp>=${event.createdAt * 1000 - 1000}',
+                name: 'ProfileSetupScreen',
+                category: LogCategory.ui,
+              );
+
+              // Validate we got the updated profile (match by event ID or timestamp)
+              final eventIdMatches = fetchedProfile?.eventId == event.id;
+              final timestampMatches = fetchedProfile?.createdAt != null &&
+                  fetchedProfile!.createdAt.millisecondsSinceEpoch >=
+                      (event.createdAt * 1000 - 1000); // Allow 1s tolerance
+
+              if (eventIdMatches || timestampMatches) {
+                Log.info(
+                  '✅ Relay confirmed profile update (eventId match=$eventIdMatches, timestamp match=$timestampMatches)',
+                  name: 'ProfileSetupScreen',
+                  category: LogCategory.ui,
+                );
+                return fetchedProfile;
+              }
+
+              // Profile not yet updated on relay - retry
+              throw Exception(
+                  'Relay returned stale profile - retrying... (eventId=${fetchedProfile?.eventId} vs ${event.id})');
+            },
+            maxRetries: 5, // Allow up to 5 retries
+            baseDelay: const Duration(milliseconds: 500), // Start with 500ms
+            maxDelay: const Duration(seconds: 8), // Cap at 8s
+            debugName: 'profile-publish-confirmation',
           );
 
-          final userProfileService = ref.read(userProfileServiceProvider);
+          if (confirmedProfile == null) {
+            throw Exception('Failed to confirm profile update after retries');
+          }
 
-          // Create profile from published data
-          final newProfile = profile_model.UserProfile(
-            pubkey: currentPubkey,
-            eventId: event.id,
-            createdAt:
-                DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
-            name: profileData['name'] as String?,
-            displayName: profileData['display_name'] as String?,
-            about: profileData['about'] as String?,
-            picture: profileData['picture'] as String?,
-            nip05: profileData['nip05'] as String?,
-            rawData: profileData,
-          );
-
-          // Update cache directly (no async fetch needed)
-          await userProfileService.updateCachedProfile(newProfile);
-          Log.info('✅ Updated local cache with published profile data',
+          // Update cache with confirmed profile
+          await userProfileService.updateCachedProfile(confirmedProfile);
+          Log.info('✅ Updated local cache with relay-confirmed profile',
               name: 'ProfileSetupScreen', category: LogCategory.ui);
 
           // Update AuthService profile cache
@@ -887,49 +935,91 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           ref.invalidate(fetchUserProfileProvider(currentPubkey));
           Log.info('✅ Invalidated fetchUserProfileProvider for UI refresh',
               name: 'ProfileSetupScreen', category: LogCategory.ui);
-        }
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: VineTheme.vineGreen,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 17,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Profile published successfully!',
-                    style: TextStyle(color: VineTheme.vineGreen),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.white,
-            ),
-          );
-        }
-
-        // Navigate back or to main app
-        if (widget.isNewUser) {
-          // For new users, wait a moment to show success message, then navigate to main app
-          await Future.delayed(const Duration(seconds: 1));
+          // Clear waiting state
           if (mounted) {
-            // Navigate to main app by popping back to the auth flow
-            // The auth service should already be in authenticated state
-            Navigator.of(context).popUntil((route) => route.isFirst);
+            setState(() {
+              _isWaitingForRelay = false;
+            });
           }
-        } else {
+
           if (mounted) {
-            Navigator.of(context).pop(true); // Return true to indicate success
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: VineTheme.vineGreen,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        color: Colors.white,
+                        size: 17,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Profile published successfully!',
+                      style: TextStyle(color: VineTheme.vineGreen),
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.white,
+              ),
+            );
+          }
+
+          // Navigate back or to main app - NOW SAFE because relay has confirmed update
+          if (widget.isNewUser) {
+            // For new users, wait a moment to show success message, then navigate to main app
+            await Future.delayed(const Duration(seconds: 1));
+            if (mounted) {
+              // Navigate to main app by popping back to the auth flow
+              // The auth service should already be in authenticated state
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            }
+          } else {
+            if (mounted) {
+              Navigator.of(context).pop(true); // Return true to indicate success
+            }
+          }
+        } catch (e, stackTrace) {
+          // Clear waiting state
+          if (mounted) {
+            setState(() {
+              _isWaitingForRelay = false;
+            });
+          }
+
+          // Retry failed - show error to user
+          Log.error(
+            'Failed to confirm profile update from relay: $e',
+            name: 'ProfileSetupScreen',
+            category: LogCategory.ui,
+            stackTrace: stackTrace,
+          );
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Profile may not have updated correctly. Please check your profile and try again if needed.',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Colors.red.shade700,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+
+            // Still navigate back even on error, but warn user
+            if (widget.isNewUser) {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            } else {
+              Navigator.of(context).pop(false); // Return false to indicate partial success
+            }
           }
         }
       } else if (mounted) {
