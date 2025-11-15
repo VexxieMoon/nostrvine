@@ -15,6 +15,7 @@ import 'package:openvine/screens/safety_settings_screen.dart';
 import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/widgets/bug_report_dialog.dart';
 import 'package:openvine/widgets/delete_account_dialog.dart';
+import 'package:openvine/services/zendesk_support_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -95,8 +96,8 @@ class SettingsScreen extends ConsumerWidget {
             _buildSettingsTile(
               context,
               icon: Icons.delete_forever,
-              title: 'Delete All Content from Relays',
-              subtitle: 'PERMANENTLY delete all your content from Nostr relays',
+              title: 'Delete Account and Data',
+              subtitle: 'PERMANENTLY delete your account and all content from Nostr relays',
               onTap: () => _handleDeleteAllContent(context, ref),
               iconColor: Colors.red,
               titleColor: Colors.red,
@@ -193,21 +194,27 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _buildSettingsTile(
             context,
-            icon: Icons.bug_report,
-            title: 'Report a Bug',
-            subtitle: 'Send diagnostic info to help improve the app',
-            onTap: () {
-              final bugReportService = ref.read(bugReportServiceProvider);
-              final userPubkey = authService.currentPublicKeyHex;
+            icon: Icons.support_agent,
+            title: 'Contact Support',
+            subtitle: 'Get help or report an issue',
+            onTap: () async {
+              // Try Zendesk first, fallback to email if not available
+              if (ZendeskSupportService.isAvailable) {
+                final success = await ZendeskSupportService.showNewTicketScreen(
+                  subject: 'Support Request',
+                  tags: ['mobile', 'support'],
+                );
 
-              showDialog(
-                context: context,
-                builder: (context) => BugReportDialog(
-                  bugReportService: bugReportService,
-                  currentScreen: 'SettingsScreen',
-                  userPubkey: userPubkey,
-                ),
-              );
+                if (!success && context.mounted) {
+                  // Zendesk failed, show fallback options
+                  _showSupportFallback(context, ref, authService);
+                }
+              } else {
+                // Zendesk not available, show fallback options
+                if (context.mounted) {
+                  _showSupportFallback(context, ref, authService);
+                }
+              }
             },
           ),
           _buildSettingsTile(
@@ -497,5 +504,24 @@ class SettingsScreen extends ConsumerWidget {
         );
       }
     }
+  }
+
+  /// Show fallback support options when Zendesk is not available
+  void _showSupportFallback(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic authService,
+  ) {
+    final bugReportService = ref.read(bugReportServiceProvider);
+    final userPubkey = authService.currentPublicKeyHex;
+
+    showDialog(
+      context: context,
+      builder: (context) => BugReportDialog(
+        bugReportService: bugReportService,
+        currentScreen: 'SettingsScreen',
+        userPubkey: userPubkey,
+      ),
+    );
   }
 }
