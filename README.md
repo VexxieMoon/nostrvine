@@ -18,6 +18,8 @@ OpenVine is a decentralized, short-form video sharing mobile application built o
 
 **Features shown:** Feed navigation • Hashtag filtering • Video interactions • Social sharing • Real-time content discovery
 
+**Live web demo:** https://divine.video/discovery 
+
 </div>
 
 ## Recent Updates ✨
