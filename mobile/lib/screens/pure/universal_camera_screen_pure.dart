@@ -3,6 +3,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'package:camera/camera.dart' show FlashMode;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,7 @@ import 'package:openvine/models/vine_draft.dart';
 import 'package:openvine/providers/vine_recording_provider.dart';
 import 'package:openvine/models/native_proof_data.dart';
 import 'package:openvine/screens/vine_drafts_screen.dart';
+import 'package:openvine/services/camera/enhanced_mobile_camera_interface.dart';
 import 'package:openvine/services/draft_storage_service.dart';
 import 'package:openvine/utils/video_controller_cleanup.dart';
 import 'package:openvine/screens/pure/video_metadata_screen_pure.dart';
@@ -378,7 +380,7 @@ class _UniversalCameraScreenPureState
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: VineTheme.vineGreen,
         elevation: 0,
         leading: IconButton(
           key: const Key('back-button'),
@@ -390,72 +392,36 @@ class _UniversalCameraScreenPureState
           style: TextStyle(color: Colors.white),
         ),
         actions: [
-          // Drafts button - only show when not recording
+          // Drafts button - moved to right end of app bar with proper vertical alignment
           Consumer(
             builder: (context, ref, child) {
               final recordingState = ref.watch(vineRecordingProvider);
               if (recordingState.isRecording) {
                 return const SizedBox.shrink();
               }
-              return TextButton(
-                key: const Key('drafts-button'),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const VineDraftsScreen(),
-                    ),
-                  );
-                },
-                child: const Text(
-                  'Drafts',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              );
-            },
-          ),
-          // Recording status indicator
-          Consumer(
-            builder: (context, ref, child) {
-              final recordingState = ref.watch(vineRecordingProvider);
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: recordingState.isRecording
-                      ? Colors.red.withValues(alpha: 0.7)
-                      : Colors.black.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      recordingState.isRecording
-                          ? Icons.fiber_manual_record
-                          : Icons.videocam,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      recordingState.isRecording
-                          ? _formatDuration(recordingState.recordingDuration)
-                          : 'Ready',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+              return Center(
+                child: TextButton(
+                  key: const Key('drafts-button'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const VineDraftsScreen(),
                       ),
-                    ),
-                  ],
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    minimumSize: const Size(0, 48), // Match IconButton height
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Drafts',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
                 ),
               );
             },
           ),
-          // ProofMode status indicator - HIDDEN (now shown in Settings -> ProofMode Info)
         ],
       ),
       body: Consumer(
@@ -524,7 +490,7 @@ class _UniversalCameraScreenPureState
 
           return Stack(
             children: [
-              // Camera preview (square/1:1 aspect ratio for Vine-style videos)
+              // Camera preview at natural aspect ratio (cropping applied during encoding)
               // Wrapped in GestureDetector for tap-anywhere-to-record (Vine-style UX)
               Positioned.fill(
                 child: GestureDetector(
@@ -543,54 +509,18 @@ class _UniversalCameraScreenPureState
                   behavior: HitTestBehavior.translucent,
                   child: Align(
                     alignment: Alignment.topCenter,
-                    child: AspectRatio(
-                      aspectRatio:
-                          recordingState.aspectRatio == vine.AspectRatio.square
-                          ? 1.0
-                          : 9.0 / 16.0,
-                      child: ClipRect(
-                        child: Stack(
-                          children: [
-                            // Camera preview cropped (not stretched) using Stack Overflow pattern:
-                            // https://stackoverflow.com/questions/51348166/how-to-square-crop-a-flutter-camera-preview
+                    child: ClipRect(
+                      child: Stack(
+                        children: [
+                            // Camera preview at natural aspect ratio
                             if (recordingState.isInitialized)
-                              LayoutBuilder(
-                                // CRITICAL: Use a key that changes when camera switches
-                                // Without this, the preview widget won't rebuild and freezes on the old camera frame
+                              // CRITICAL: Use a key that changes when camera switches
+                              // Without this, the preview widget won't rebuild and freezes on the old camera frame
+                              Container(
                                 key: ValueKey('preview_${recordingState.cameraSwitchCount}'),
-                                builder: (context, constraints) {
-                                  Log.info('📸 Building camera preview widget (switchCount=${recordingState.cameraSwitchCount})',
-                                      name: 'UniversalCameraScreenPure', category: LogCategory.system);
-
-                                  // Get actual camera aspect ratio from the recording provider
-                                  // This prevents distortion by using the real camera sensor aspect ratio
-                                  final cameraAspectRatio = ref.read(vineRecordingProvider.notifier).cameraPreviewAspectRatio;
-
-                                  Log.info('📸 Camera aspect ratio: $cameraAspectRatio',
-                                      name: 'UniversalCameraScreenPure', category: LogCategory.system);
-
-                                  // Container size
-                                  final containerWidth = constraints.maxWidth;
-
-                                  // Calculate preview size to fill width using actual camera aspect ratio
-                                  final previewHeight = containerWidth / cameraAspectRatio;
-
-                                  return OverflowBox(
-                                    alignment: Alignment.center,
-                                    maxWidth: containerWidth,
-                                    maxHeight: previewHeight,
-                                    child: FittedBox(
-                                      fit: BoxFit.fitWidth,
-                                      child: SizedBox(
-                                        width: containerWidth,
-                                        height: previewHeight,
-                                        child: ref
-                                            .read(vineRecordingProvider.notifier)
-                                            .previewWidget,
-                                      ),
-                                    ),
-                                  );
-                                },
+                                child: ref
+                                    .read(vineRecordingProvider.notifier)
+                                    .previewWidget,
                               )
                             else
                               CameraPreviewPlaceholder(
@@ -620,7 +550,29 @@ class _UniversalCameraScreenPureState
                     ),
                   ),
                 ),
-              ),
+
+              // Square crop mask overlay (only shown in square mode)
+              // Positioned OUTSIDE ClipRect so it's not clipped away
+              if (recordingState.aspectRatio == vine.AspectRatio.square && recordingState.isInitialized)
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    Log.info('🎭 Building square crop mask overlay',
+                        name: 'UniversalCameraScreenPure', category: LogCategory.video);
+
+                    // Use screen dimensions, not camera preview dimensions
+                    final screenWidth = constraints.maxWidth;
+                    final screenHeight = constraints.maxHeight;
+                    final squareSize = screenWidth; // Square uses full screen width
+
+                    Log.info('🎭 Mask dimensions: screenWidth=$screenWidth, screenHeight=$screenHeight, squareSize=$squareSize',
+                        name: 'UniversalCameraScreenPure', category: LogCategory.video);
+
+                    return _buildSquareCropMaskForPreview(
+                      screenWidth,
+                      screenHeight,
+                    );
+                  },
+                ),
 
               // Recording controls overlay (bottom)
               Positioned(
@@ -952,14 +904,19 @@ class _UniversalCameraScreenPureState
   }
 
   Widget _buildCameraControls(dynamic recordingState) {
+    final cameraInterface = ref.read(vineRecordingProvider.notifier).cameraInterface;
+    final isFrontCamera = cameraInterface is EnhancedMobileCameraInterface && cameraInterface.isFrontCamera;
+
     return Column(
       children: [
-        // Flash toggle
-        IconButton(
-          onPressed: _toggleFlash,
-          icon: Icon(_getFlashIcon(), color: Colors.white, size: 28),
-        ),
-        const SizedBox(height: 8),
+        // Flash toggle (only show for rear camera - front cameras don't have flash)
+        if (!isFrontCamera) ...[
+          IconButton(
+            onPressed: _toggleFlash,
+            icon: Icon(_getFlashIcon(), color: Colors.white, size: 28),
+          ),
+          const SizedBox(height: 8),
+        ],
         // Timer toggle
         IconButton(
           onPressed: _toggleTimer,
@@ -990,10 +947,13 @@ class _UniversalCameraScreenPureState
         onPressed: recordingState.isRecording
             ? null
             : () {
+                final currentRatio = recordingState.aspectRatio;
                 final newRatio =
                     recordingState.aspectRatio == vine.AspectRatio.square
                     ? vine.AspectRatio.vertical
                     : vine.AspectRatio.square;
+                Log.info('🎭 Aspect ratio button pressed: $currentRatio -> $newRatio',
+                    name: 'UniversalCameraScreenPure', category: LogCategory.video);
                 ref
                     .read(vineRecordingProvider.notifier)
                     .setAspectRatio(newRatio);
@@ -1002,16 +962,69 @@ class _UniversalCameraScreenPureState
     );
   }
 
+  /// Build square crop mask overlay centered on screen
+  /// Shows semi-transparent overlay outside the 1:1 square
+  Widget _buildSquareCropMaskForPreview(double screenWidth, double screenHeight) {
+    // Square uses full screen width
+    final squareSize = screenWidth;
+
+    // Calculate top/bottom areas to darken (centered vertically on screen)
+    final topBottomHeight = (screenHeight - squareSize) / 2;
+
+    return Stack(
+      children: [
+        // Top darkened area
+        if (topBottomHeight > 0)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: topBottomHeight,
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.6),
+            ),
+          ),
+
+        // Bottom darkened area
+        if (topBottomHeight > 0)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: topBottomHeight,
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.6),
+            ),
+          ),
+
+        // Square frame outline (visual guide)
+        Positioned(
+          top: topBottomHeight > 0 ? topBottomHeight : 0,
+          left: 0,
+          width: squareSize,
+          height: squareSize,
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: VineTheme.vineGreen,
+                width: 3,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   IconData _getFlashIcon() {
     switch (_flashMode) {
       case FlashMode.off:
         return Icons.flash_off;
-      case FlashMode.auto:
-        return Icons.flash_auto;
-      case FlashMode.on:
-        return Icons.flash_on;
       case FlashMode.torch:
         return Icons.flashlight_on;
+      case FlashMode.auto:
+      case FlashMode.always:
+        return Icons.flash_on;
     }
   }
 
@@ -1153,27 +1166,33 @@ class _UniversalCameraScreenPureState
   }
 
   void _toggleFlash() {
-    setState(() {
-      switch (_flashMode) {
-        case FlashMode.off:
-          _flashMode = FlashMode.auto;
-          break;
-        case FlashMode.auto:
-          _flashMode = FlashMode.on;
-          break;
-        case FlashMode.on:
-          _flashMode = FlashMode.torch;
-          break;
-        case FlashMode.torch:
-          _flashMode = FlashMode.off;
-          break;
-      }
-    });
-    Log.info(
-      '📹 Flash mode changed to: $_flashMode',
-      category: LogCategory.video,
-    );
-    // TODO: Apply flash mode to camera controller when camera package supports it
+    Log.info('🔦 Flash button tapped', category: LogCategory.video);
+
+    final cameraInterface = ref.read(vineRecordingProvider.notifier).cameraInterface;
+
+    if (cameraInterface is EnhancedMobileCameraInterface) {
+      // Update local state to cycle through: off → torch (for video recording)
+      // For video, we use torch mode (continuous light) instead of flash
+      setState(() {
+        switch (_flashMode) {
+          case FlashMode.off:
+            _flashMode = FlashMode.torch;
+            break;
+          case FlashMode.torch:
+          case FlashMode.auto:
+          case FlashMode.always:
+            _flashMode = FlashMode.off;
+            break;
+        }
+      });
+
+      Log.info('🔦 Flash mode toggled to: $_flashMode', category: LogCategory.video);
+
+      // Apply the new flash mode to camera
+      cameraInterface.setFlashMode(_flashMode);
+    } else {
+      Log.warning('🔦 Camera interface is not EnhancedMobileCameraInterface', category: LogCategory.video);
+    }
   }
 
   void _handleRecordingAutoStop() async {
@@ -1510,9 +1529,6 @@ class _UniversalCameraScreenPureState
     );
   }
 }
-
-/// Flash mode options for camera
-enum FlashMode { off, auto, on, torch }
 
 /// Timer duration options for delayed recording
 enum TimerDuration { off, threeSeconds, tenSeconds }
