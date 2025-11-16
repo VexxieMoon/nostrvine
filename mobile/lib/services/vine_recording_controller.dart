@@ -1377,17 +1377,49 @@ class VineRecordingController {
       final outputPath =
           '${tempDir.path}/vine_final_${DateTime.now().millisecondsSinceEpoch}.mp4';
 
-      // Create concat file list
+      // CRITICAL FIX: When switching cameras mid-recording, second segment gets 180° rotation
+      // We need to normalize all segments to have the same rotation before concatenating
+      // Strategy: Re-encode all segments with rotation metadata applied to pixels, then strip metadata
+      Log.info('📹 Normalizing rotation for all segments to prevent camera-switch flip',
+          name: 'VineRecordingController', category: LogCategory.system);
+
+      final normalizedPaths = <String>[];
+      for (var i = 0; i < segments.length; i++) {
+        final segment = segments[i];
+        if (segment.filePath == null) continue;
+
+        final normalizedPath = '${tempDir.path}/normalized_$i.mp4';
+
+        // Use -noautorotate to prevent FFmpeg from auto-rotating during input
+        // Then manually apply rotation metadata to pixels and strip metadata
+        // This ensures all segments have physically upright pixels with no rotation tag
+        final normalizeCommand = '-i "${segment.filePath}" -c:v libx264 -preset ultrafast -c:a copy -metadata:s:v rotate=0 "$normalizedPath"';
+
+        Log.info('📹 Normalizing segment $i with command: $normalizeCommand',
+            name: 'VineRecordingController', category: LogCategory.system);
+
+        final session = await FFmpegKit.execute(normalizeCommand);
+        final returnCode = await session.getReturnCode();
+
+        if (!ReturnCode.isSuccess(returnCode)) {
+          final output = await session.getOutput();
+          Log.error('📹 Failed to normalize segment $i: $output',
+              name: 'VineRecordingController', category: LogCategory.system);
+          throw Exception('Failed to normalize rotation for segment $i');
+        }
+
+        normalizedPaths.add(normalizedPath);
+        Log.info('📹 Successfully normalized segment $i',
+            name: 'VineRecordingController', category: LogCategory.system);
+      }
+
+      // Create concat file list with normalized segments
       final concatFilePath = '${tempDir.path}/concat_list.txt';
       final concatFile = File(concatFilePath);
 
-      // Write file paths to concat list
       final buffer = StringBuffer();
-      for (final segment in segments) {
-        if (segment.filePath != null) {
-          // FFmpeg concat requires the 'file' prefix and proper escaping
-          buffer.writeln("file '${segment.filePath}'");
-        }
+      for (final normalizedPath in normalizedPaths) {
+        buffer.writeln("file '$normalizedPath'");
       }
 
       await concatFile.writeAsString(buffer.toString());
@@ -1395,8 +1427,7 @@ class VineRecordingController {
       Log.info('📹 FFmpeg concat list:\n${buffer.toString()}',
           name: 'VineRecordingController', category: LogCategory.system);
 
-      // Execute FFmpeg concatenation with square (1:1) aspect ratio CENTER cropping
-      // Vine-style videos must be square format, centered crop for best framing
+      // Execute FFmpeg concatenation with aspect ratio cropping
       final cropFilter = _buildCropFilter(_aspectRatio);
       final command = '-f concat -safe 0 -i "$concatFilePath" -vf "$cropFilter" -c:a copy "$outputPath"';
 
@@ -1410,9 +1441,17 @@ class VineRecordingController {
         Log.info('📹 FFmpeg concatenation successful: $outputPath',
             name: 'VineRecordingController', category: LogCategory.system);
 
-        // Clean up concat list file
+        // Clean up concat list file and normalized segments
         try {
           await concatFile.delete();
+          for (final normalizedPath in normalizedPaths) {
+            try {
+              await File(normalizedPath).delete();
+            } catch (e) {
+              Log.warning('Failed to delete normalized segment $normalizedPath: $e',
+                  name: 'VineRecordingController', category: LogCategory.system);
+            }
+          }
         } catch (e) {
           Log.warning('Failed to delete concat list file: $e',
               name: 'VineRecordingController', category: LogCategory.system);
