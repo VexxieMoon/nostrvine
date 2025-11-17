@@ -22,6 +22,14 @@ import SupportProvidersSDK
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
+  // Force portrait orientation for entire app (including camera preview)
+  override func application(
+    _ application: UIApplication,
+    supportedInterfaceOrientationsFor window: UIWindow?
+  ) -> UIInterfaceOrientationMask {
+    return .portrait
+  }
+
   private func setupProofModeChannel() {
     guard let controller = window?.rootViewController as? FlutterViewController else {
       NSLog("❌ ProofMode: Could not get FlutterViewController")
