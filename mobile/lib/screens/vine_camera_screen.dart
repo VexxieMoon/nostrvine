@@ -28,6 +28,13 @@ class _VineCameraScreenState extends State<VineCameraScreen> {
   int _currentRearCameraIndex = 0;
   bool _isFrontCamera = false;
 
+  // Zoom state
+  double _currentZoomLevel = 1.0;
+  double _minZoomLevel = 1.0;
+  double _maxZoomLevel = 1.0;
+  List<double> _availableZoomLevels = [1.0]; // Will be populated based on device capabilities
+  int _currentZoomIndex = 0;
+
   // Focus indicator state
   Offset? _focusPoint;
   bool _showFocusIndicator = false;
@@ -139,6 +146,18 @@ class _VineCameraScreenState extends State<VineCameraScreen> {
 
       // Set initial flash mode
       await _controller!.setFlashMode(_flashMode);
+
+      // Initialize zoom levels
+      _minZoomLevel = await _controller!.getMinZoomLevel();
+      _maxZoomLevel = await _controller!.getMaxZoomLevel();
+      _currentZoomLevel = _minZoomLevel;
+
+      // Determine available zoom levels based on device capabilities
+      _availableZoomLevels = _determineAvailableZoomLevels();
+      _currentZoomIndex = 0;
+
+      Log.info('📹 Zoom capabilities: min=$_minZoomLevel, max=$_maxZoomLevel, available=$_availableZoomLevels',
+          name: 'VineCameraScreen', category: LogCategory.system);
 
       if (mounted) {
         setState(() {
@@ -517,6 +536,33 @@ class _VineCameraScreenState extends State<VineCameraScreen> {
   }
 
   // Switch zoom level (cycles through rear cameras only)
+  /// Determine available zoom levels based on device max zoom capability
+  List<double> _determineAvailableZoomLevels() {
+    // Common zoom levels: 0.5x (ultra-wide), 1x (wide), 3x (telephoto), 5x (periscope)
+    final levels = <double>[];
+
+    // Always include 1x (normal/wide)
+    levels.add(1.0);
+
+    // Check if ultra-wide (0.5x) is supported
+    if (_minZoomLevel <= 0.5) {
+      levels.insert(0, 0.5); // Put 0.5x first
+    }
+
+    // Check if telephoto (3x) is supported
+    if (_maxZoomLevel >= 3.0) {
+      levels.add(3.0);
+    }
+
+    // Check if periscope/super telephoto (5x) is supported
+    if (_maxZoomLevel >= 5.0) {
+      levels.add(5.0);
+    }
+
+    return levels;
+  }
+
+  /// Switch zoom level instantly using setZoomLevel (no camera reinit required)
   Future<void> _switchZoom() async {
     Log.info('📹 _switchZoom() called',
         name: 'VineCameraScreen', category: LogCategory.system);
@@ -528,21 +574,15 @@ class _VineCameraScreenState extends State<VineCameraScreen> {
       return;
     }
 
-    // Need at least 2 rear cameras to switch zoom
-    if (_rearCameras.length <= 1) {
-      Log.debug('📹 Only ${_rearCameras.length} rear camera(s), cannot switch zoom',
+    // Need at least 2 zoom levels to switch
+    if (_availableZoomLevels.length <= 1) {
+      Log.debug('📹 Only ${_availableZoomLevels.length} zoom level(s), cannot switch',
           name: 'VineCameraScreen', category: LogCategory.system);
       return;
     }
 
     if (_controller == null || !_controller!.value.isInitialized) {
       Log.warning('📹 Cannot switch zoom - controller not initialized',
-          name: 'VineCameraScreen', category: LogCategory.system);
-      return;
-    }
-
-    if (_isSwitchingCamera) {
-      Log.warning('📹 Camera switch already in progress',
           name: 'VineCameraScreen', category: LogCategory.system);
       return;
     }
@@ -554,104 +594,23 @@ class _VineCameraScreenState extends State<VineCameraScreen> {
     }
 
     try {
-      // If recording, stop it first before switching zoom
-      final wasRecording = _isRecording;
+      // Cycle to next zoom level
+      _currentZoomIndex = (_currentZoomIndex + 1) % _availableZoomLevels.length;
+      final newZoomLevel = _availableZoomLevels[_currentZoomIndex];
 
-      if (wasRecording) {
-        Log.info('📹 Stopping recording before zoom switch...',
-            name: 'VineCameraScreen', category: LogCategory.system);
-        try {
-          await _controller!.stopVideoRecording();
-        } catch (e) {
-          Log.warning('📹 Recording already stopped during zoom switch: $e',
-              name: 'VineCameraScreen', category: LogCategory.system);
-        }
-        _isRecording = false;
-      }
-
-      setState(() {
-        _isSwitchingCamera = true;
-      });
-
-      // Wait for next frame to ensure loading indicator is shown
-      await Future.delayed(const Duration(milliseconds: 16)); // One frame at 60fps
-
-      if (!mounted) {
-        Log.warning('📹 Widget unmounted before disposing',
-            name: 'VineCameraScreen', category: LogCategory.system);
-        return;
-      }
-
-      Log.info('📹 Disposing old camera controller...',
+      Log.info('📹 Setting zoom level to ${newZoomLevel}x...',
           name: 'VineCameraScreen', category: LogCategory.system);
 
-      // Dispose old controller first
-      await _controller!.dispose();
-
-      if (!mounted) {
-        Log.warning('📹 Widget unmounted during zoom switch',
-            name: 'VineCameraScreen', category: LogCategory.system);
-        return;
-      }
-
-      // Cycle to next rear camera
-      _currentRearCameraIndex = (_currentRearCameraIndex + 1) % _rearCameras.length;
-      final camera = _rearCameras[_currentRearCameraIndex];
-
-      Log.info('📹 Switching to rear camera ${_currentRearCameraIndex + 1}/${_rearCameras.length}: ${camera.name}',
-          name: 'VineCameraScreen', category: LogCategory.system);
-
-      // Initialize new camera
-      _controller = CameraController(
-        camera,
-        ResolutionPreset.high,
-        enableAudio: true,
-      );
-
-      Log.info('📹 Initializing new camera controller...',
-          name: 'VineCameraScreen', category: LogCategory.system);
-
-      await _controller!.initialize();
-
-      if (!mounted) {
-        Log.warning('📹 Widget unmounted during new camera init',
-            name: 'VineCameraScreen', category: LogCategory.system);
-        _controller?.dispose();
-        return;
-      }
-
-      Log.info('📹 Locking new camera to portrait orientation...',
-          name: 'VineCameraScreen', category: LogCategory.system);
-
-      await _controller!.lockCaptureOrientation(DeviceOrientation.portraitUp);
-
-      if (!mounted) {
-        Log.warning('📹 Widget unmounted during orientation lock',
-            name: 'VineCameraScreen', category: LogCategory.system);
-        _controller?.dispose();
-        return;
-      }
-
-      Log.info('📹 Setting flash mode on new camera...',
-          name: 'VineCameraScreen', category: LogCategory.system);
-
-      await _controller!.setFlashMode(_flashMode);
+      // Set zoom level - this is instant, no camera reinitialization!
+      await _controller!.setZoomLevel(newZoomLevel);
+      _currentZoomLevel = newZoomLevel;
 
       if (mounted) {
         setState(() {
-          _isSwitchingCamera = false;
+          // Just update UI to show new zoom level
         });
-        Log.info('📹 ✅ Zoom switch complete!',
+        Log.info('📹 ✅ Zoom level changed to ${newZoomLevel}x instantly!',
             name: 'VineCameraScreen', category: LogCategory.system);
-
-        // Warm up recording pipeline in background (non-blocking)
-        _controller!.prepareForVideoRecording().then((_) {
-          Log.info('📹 Recording pipeline warm-up complete (after zoom switch)',
-              name: 'VineCameraScreen', category: LogCategory.system);
-        }).catchError((e) {
-          Log.warning('📹 Recording pipeline warm-up failed (non-critical): $e',
-              name: 'VineCameraScreen', category: LogCategory.system);
-        });
       }
     } catch (e, stackTrace) {
       Log.error('📹 ❌ Failed to switch zoom: $e',
@@ -661,7 +620,6 @@ class _VineCameraScreenState extends State<VineCameraScreen> {
 
       if (mounted) {
         setState(() {
-          _isSwitchingCamera = false;
           _errorMessage = 'Failed to switch zoom: $e';
         });
       }
@@ -670,32 +628,22 @@ class _VineCameraScreenState extends State<VineCameraScreen> {
 
   // Get zoom level display text (e.g., "1x", "0.5x", "3x")
   String get _zoomLevelText {
-    if (_isFrontCamera || _rearCameras.isEmpty) {
+    if (_isFrontCamera) {
       return '1x';
     }
 
-    // Use lensType property to determine zoom level
-    final camera = _rearCameras[_currentRearCameraIndex];
-
-    switch (camera.lensType) {
-      case CameraLensType.ultraWide:
-        return '0.5x';
-      case CameraLensType.wide:
-        return '1x';
-      case CameraLensType.telephoto:
-        // For telephoto, check camera name for 5x vs 3x
-        final name = camera.name.toLowerCase();
-        if (name.contains('5x') || name.contains('periscope')) {
-          return '5x';
-        }
-        return '3x';
-      case CameraLensType.unknown:
-        // Fallback: try to parse from name
-        final name = camera.name.toLowerCase();
-        if (name.contains('ultra')) return '0.5x';
-        if (name.contains('tele') || name.contains('telephoto')) return '3x';
-        if (name.contains('5x')) return '5x';
-        return '1x';
+    // Format current zoom level for display
+    if (_currentZoomLevel == 0.5) {
+      return '0.5x';
+    } else if (_currentZoomLevel == 1.0) {
+      return '1x';
+    } else if (_currentZoomLevel == 3.0) {
+      return '3x';
+    } else if (_currentZoomLevel == 5.0) {
+      return '5x';
+    } else {
+      // Fallback: format as decimal
+      return '${_currentZoomLevel.toStringAsFixed(1)}x';
     }
   }
 
@@ -778,7 +726,7 @@ class _VineCameraScreenState extends State<VineCameraScreen> {
                 // Flash button
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
@@ -795,7 +743,7 @@ class _VineCameraScreenState extends State<VineCameraScreen> {
                 if (_availableCameras.length > 1)
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
@@ -844,8 +792,8 @@ class _VineCameraScreenState extends State<VineCameraScreen> {
             ),
           ),
 
-          // Zoom button (above record button, only visible for rear camera with multiple lenses)
-          if (!_isFrontCamera && _rearCameras.length > 1)
+          // Zoom button (above record button, only visible for rear camera with multiple zoom levels)
+          if (!_isFrontCamera && _availableZoomLevels.length > 1)
             Positioned(
               bottom: 140, // 100px above record button (40 + 80 + 20)
               left: 0,
