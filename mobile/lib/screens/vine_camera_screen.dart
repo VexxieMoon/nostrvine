@@ -113,11 +113,25 @@ class _VineCameraScreenState extends State<VineCameraScreen> {
       // Set initial flash mode
       await _controller!.setFlashMode(_flashMode);
 
+      if (!mounted) {
+        Log.warning('📹 Widget unmounted during setFlashMode(), disposing controller',
+            name: 'VineCameraScreen', category: LogCategory.system);
+        _controller?.dispose();
+        return;
+      }
+
+      Log.info('📹 Preparing for video recording (warm-up)...',
+          name: 'VineCameraScreen', category: LogCategory.system);
+
+      // CRITICAL: Prepare for video recording to eliminate 5+ second delay on first recording
+      // This warms up the recording pipeline on iOS
+      await _controller!.prepareForVideoRecording();
+
       if (mounted) {
         setState(() {
           _isInitialized = true;
         });
-        Log.info('📹 ✅ Camera initialization complete!',
+        Log.info('📹 ✅ Camera initialization complete with recording pipeline ready!',
             name: 'VineCameraScreen', category: LogCategory.system);
       } else {
         Log.warning('📹 Widget unmounted after initialization, disposing controller',
@@ -404,11 +418,24 @@ class _VineCameraScreenState extends State<VineCameraScreen> {
 
       await _controller!.setFlashMode(_flashMode);
 
+      if (!mounted) {
+        Log.warning('📹 Widget unmounted during setFlashMode',
+            name: 'VineCameraScreen', category: LogCategory.system);
+        _controller?.dispose();
+        return;
+      }
+
+      Log.info('📹 Preparing new camera for video recording...',
+          name: 'VineCameraScreen', category: LogCategory.system);
+
+      // Prepare recording pipeline on the new camera to avoid delay on first recording
+      await _controller!.prepareForVideoRecording();
+
       if (mounted) {
         setState(() {
           _isSwitchingCamera = false;
         });
-        Log.info('📹 ✅ Camera switch complete!',
+        Log.info('📹 ✅ Camera switch complete with recording pipeline ready!',
             name: 'VineCameraScreen', category: LogCategory.system);
       }
     } catch (e, stackTrace) {
