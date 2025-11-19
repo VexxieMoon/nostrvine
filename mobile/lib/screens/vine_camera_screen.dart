@@ -717,7 +717,8 @@ class _VineCameraScreenState extends State<VineCameraScreen> {
       );
     }
 
-    if (!_isInitialized || _controller == null || _isSwitchingCamera) {
+    // Only show full black loading screen on initial load
+    if (!_isInitialized || _controller == null) {
       return const Scaffold(
         backgroundColor: Colors.black,
         body: Center(
@@ -747,6 +748,15 @@ class _VineCameraScreenState extends State<VineCameraScreen> {
               ),
             ),
           ),
+
+          // Floating loading spinner when switching cameras/zoom (keeps preview visible)
+          if (_isSwitchingCamera)
+            Container(
+              color: Colors.black.withValues(alpha: 0.3), // Semi-transparent overlay
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            ),
 
           // Back button
           Positioned(
