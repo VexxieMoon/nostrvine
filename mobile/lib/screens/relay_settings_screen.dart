@@ -410,7 +410,10 @@ class _RelaySettingsScreenState extends ConsumerState<RelaySettingsScreen> {
       ),
     );
 
-    controller.dispose();
+    // Dispose after frame to avoid hot reload issues
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
 
     if (relayUrl == null || relayUrl.isEmpty) return;
 
