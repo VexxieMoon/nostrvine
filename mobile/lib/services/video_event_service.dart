@@ -3913,7 +3913,7 @@ class VideoEventService extends ChangeNotifier {
           name: 'VideoEventService', category: LogCategory.video);
 
       final directQueryEvents = await _nostrService.getEvents(
-        filters: [Filter(kinds: [34236, 34235, 22, 21], limit: 100)],
+        filters: [Filter(kinds: [34236], limit: 100)],
         limit: 100,
       );
 

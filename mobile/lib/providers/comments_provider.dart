@@ -77,15 +77,41 @@ class CommentsNotifier extends _$CommentsNotifier {
     _rootEventId = rootEventId;
     _rootAuthorPubkey = rootAuthorPubkey;
 
+    Log.debug(
+      '💬 CommentsNotifier.build() called for event: $rootEventId',
+      name: 'CommentsNotifier',
+      category: LogCategory.ui,
+    );
+
     // Load comments on initialization
-    Future.microtask(() => _loadComments());
+    Future.microtask(() {
+      Log.debug(
+        '💬 Microtask executing _loadComments for event: $rootEventId',
+        name: 'CommentsNotifier',
+        category: LogCategory.ui,
+      );
+      _loadComments();
+    });
 
     return CommentsState(rootEventId: rootEventId);
   }
 
   /// Load comments for the video
   Future<void> _loadComments() async {
-    if (state.isLoading) return;
+    Log.debug(
+      '💬 _loadComments() called for $_rootEventId, isLoading=${state.isLoading}',
+      name: 'CommentsNotifier',
+      category: LogCategory.ui,
+    );
+
+    if (state.isLoading) {
+      Log.debug(
+        '💬 _loadComments() returning early - already loading',
+        name: 'CommentsNotifier',
+        category: LogCategory.ui,
+      );
+      return;
+    }
 
     state = state.copyWith(isLoading: true, error: null);
 
@@ -93,6 +119,11 @@ class CommentsNotifier extends _$CommentsNotifier {
     final completer = Completer<void>();
 
     try {
+      Log.debug(
+        '💬 About to get socialService and create subscription for $_rootEventId',
+        name: 'CommentsNotifier',
+        category: LogCategory.ui,
+      );
       final socialService = ref.read(socialServiceProvider);
       final commentsStream = socialService.fetchCommentsForEvent(_rootEventId);
       final commentMap = <String, Comment>{};
@@ -102,8 +133,19 @@ class CommentsNotifier extends _$CommentsNotifier {
       // Use listen() instead of await for to avoid blocking on stream completion
       // Nostr relays may not send EOSE, causing long waits with await for
       // Don't use .take() - let stream stay open for real-time comments
+      Log.debug(
+        '💬 Created comment subscription stream, listening...',
+        name: 'CommentsNotifier',
+        category: LogCategory.ui,
+      );
+
       final subscription = commentsStream.listen(
         (event) {
+          Log.debug(
+            '💬 Received comment event: ${event.id}',
+            name: 'CommentsNotifier',
+            category: LogCategory.ui,
+          );
           // Convert Nostr event to Comment model
           final comment = _eventToComment(event);
           if (comment != null) {
@@ -158,8 +200,18 @@ class CommentsNotifier extends _$CommentsNotifier {
       // This prevents waiting forever for stream completion while still
       // allowing real-time comments to arrive after initial load
       Future.delayed(const Duration(seconds: 3), () {
+        Log.debug(
+          '💬 3-second timeout fired. hasReceivedFirstEvent=$hasReceivedFirstEvent, completer.isCompleted=${completer.isCompleted}',
+          name: 'CommentsNotifier',
+          category: LogCategory.ui,
+        );
         if (!hasReceivedFirstEvent && !completer.isCompleted) {
           // No comments received after waiting - show empty state
+          Log.debug(
+            '💬 No comments received after 3s, showing empty state for $_rootEventId',
+            name: 'CommentsNotifier',
+            category: LogCategory.ui,
+          );
           state = state.copyWith(
             topLevelComments: [],
             isLoading: false,

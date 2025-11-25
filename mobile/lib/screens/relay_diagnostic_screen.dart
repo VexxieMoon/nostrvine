@@ -56,7 +56,7 @@ class _RelayDiagnosticScreenState extends ConsumerState<RelayDiagnosticScreen> {
         try {
           final videoEvents = await nostrService.getEvents(
             filters: [
-              nostr.Filter(kinds: [34236, 34235, 22, 21])
+              nostr.Filter(kinds: [34236])
             ],
             limit: 10,
           );
@@ -130,7 +130,7 @@ class _RelayDiagnosticScreenState extends ConsumerState<RelayDiagnosticScreen> {
       // Query for video events directly from embedded relay database
       final videoEvents = await nostrService.getEvents(
         filters: [
-          nostr.Filter(kinds: [34236, 34235, 22, 21], limit: 100)
+          nostr.Filter(kinds: [34236], limit: 100)
         ],
         limit: 100,
       );

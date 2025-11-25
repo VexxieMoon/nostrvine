@@ -181,27 +181,15 @@ void main() {
 
         // Check for share options
         expect(find.text('Send to Viner'), findsOneWidget);
-        expect(find.text('Copy Link'), findsOneWidget);
+        expect(find.text('Share'), findsOneWidget);
         expect(find.byIcon(Icons.person_add), findsOneWidget);
-        expect(find.byIcon(Icons.copy), findsOneWidget);
+        expect(find.byIcon(Icons.share), findsWidgets);
       });
 
-      testWidgets('handles copy link functionality', (tester) async {
+      testWidgets('displays share button that triggers external share', (tester) async {
         if (realVideos.isEmpty) return;
 
         final testVideo = realVideos.first;
-
-        // Mock clipboard
-        const MethodChannel clipboardChannel = MethodChannel('flutter/platform');
-        String? copiedData;
-        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(clipboardChannel, (MethodCall methodCall) async {
-          if (methodCall.method == 'Clipboard.setData') {
-            copiedData = methodCall.arguments['text'];
-            return null;
-          }
-          return null;
-        });
 
         await tester.pumpWidget(
           ProviderScope(
@@ -213,15 +201,11 @@ void main() {
 
         await tester.pumpAndSettle();
 
-        // Tap copy link
-        await tester.tap(find.text('Copy Link'));
-        await tester.pumpAndSettle();
+        // Verify Share button is present (combines copy link and share externally)
+        expect(find.text('Share'), findsOneWidget);
+        expect(find.text('Share via other apps or copy link'), findsOneWidget);
 
-        // Should have copied video link to clipboard
-        expect(copiedData, isNotNull);
-        expect(copiedData, contains(testVideo.id));
-
-        Log.info('✅ Copy link test completed with data: $copiedData',
+        Log.info('✅ Share button test completed',
             name: 'ShareVideoMenuTest', category: LogCategory.system);
       });
 

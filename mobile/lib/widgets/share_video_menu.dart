@@ -379,89 +379,169 @@ class _ShareVideoMenuState extends ConsumerState<ShareVideoMenu> {
 
           const SizedBox(height: 8),
 
-          // External share options
-          _buildActionTile(
-            icon: Icons.copy,
-            title: 'Copy Link',
-            subtitle: 'Copy shareable URL',
-            onTap: _copyVideoLink,
-          ),
-
-          const SizedBox(height: 8),
-
+          // External share (native share sheet includes copy option)
           _buildActionTile(
             icon: Icons.share,
-            title: 'Share Externally',
-            subtitle: 'Share via other apps',
+            title: 'Share',
+            subtitle: 'Share via other apps or copy link',
             onTap: _shareExternally,
           ),
         ],
       );
 
-  Widget _buildListSection() => Consumer(
-        builder: (context, ref, child) {
-          final listServiceAsync = ref.watch(curatedListServiceProvider);
+  Widget _buildListSection() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Lists',
+            style: TextStyle(
+              color: VineTheme.whiteText,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
 
-          return listServiceAsync.when(
-            data: (listService) {
-              final defaultList = listService.getDefaultList();
-              final isInDefaultList = defaultList != null &&
-                  listService.isVideoInDefaultList(widget.video.id);
+          // Dynamic part: show which lists contain this video (loaded async)
+          Consumer(
+            builder: (context, ref, child) {
+              final listServiceAsync = ref.watch(curatedListServiceProvider);
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Add to List',
-                    style: TextStyle(
-                      color: VineTheme.whiteText,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+              return listServiceAsync.when(
+                data: (listService) {
+                  final listsContainingVideo =
+                      listService.getListsContainingVideo(widget.video.id);
+
+                  if (listsContainingVideo.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: VineTheme.vineGreen.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: VineTheme.vineGreen.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.playlist_add_check,
+                                color: VineTheme.vineGreen,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'In ${listsContainingVideo.length} list${listsContainingVideo.length == 1 ? '' : 's'}',
+                                style: const TextStyle(
+                                  color: VineTheme.vineGreen,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ...listsContainingVideo.map((list) => Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: InkWell(
+                                  onTap: () => _removeFromList(list.id),
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 4, horizontal: 4),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.folder,
+                                          color: VineTheme.secondaryText,
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            list.name,
+                                            style: const TextStyle(
+                                              color: VineTheme.whiteText,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                        const Icon(
+                                          Icons.remove_circle_outline,
+                                          color: VineTheme.secondaryText,
+                                          size: 16,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              )),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Add to My List (default list)
-                  _buildActionTile(
-                    icon: isInDefaultList
-                        ? Icons.playlist_add_check
-                        : Icons.playlist_add,
-                    title: isInDefaultList
-                        ? 'Remove from My List'
-                        : 'Add to My List',
-                    subtitle: 'Your public curated list',
-                    iconColor: isInDefaultList ? VineTheme.vineGreen : null,
-                    onTap: () => _toggleDefaultList(isInDefaultList),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Create new list or add to existing
-                  _buildActionTile(
-                    icon: Icons.create_new_folder,
-                    title: 'Create New List',
-                    subtitle: 'Start a new curated collection',
-                    onTap: _showCreateListDialog,
-                  ),
-
-                  // Show existing lists if any
-                  if (listService.lists.length > 1) ...[
-                    const SizedBox(height: 8),
-                    _buildActionTile(
-                      icon: Icons.folder,
-                      title: 'Add to Other List',
-                      subtitle: '${listService.lists.length - 1} other lists',
-                      onTap: _showSelectListDialog,
-                    ),
-                  ],
-                ],
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
               );
             },
-            loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
-          );
-        },
+          ),
+
+          // Static buttons - always visible immediately
+          _buildActionTile(
+            icon: Icons.playlist_add,
+            title: 'Add to List',
+            subtitle: 'Add to your curated lists',
+            onTap: _showSelectListDialog,
+          ),
+
+          const SizedBox(height: 8),
+
+          _buildActionTile(
+            icon: Icons.create_new_folder,
+            title: 'Create New List',
+            subtitle: 'Start a new curated collection',
+            onTap: _showCreateListDialog,
+          ),
+        ],
       );
+
+  /// Remove video from a specific list
+  Future<void> _removeFromList(String listId) async {
+    try {
+      final listService = await ref.read(curatedListServiceProvider.future);
+      await listService.removeVideoFromList(listId, widget.video.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Removed from list'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      Log.error('Failed to remove from list: $e',
+          name: 'ShareVideoMenu', category: LogCategory.ui);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to remove from list'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
 
   /// Build bookmark section for quick bookmarking
   Widget _buildBookmarkSection() => Consumer(

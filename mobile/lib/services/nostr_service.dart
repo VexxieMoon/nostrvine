@@ -1151,7 +1151,7 @@ class NostrService implements INostrService {
 
     // Create filter for video events with NIP-50 search query using nostr.Filter
     final nostrFilter = nostr.Filter(
-      kinds: [34236, 34235, 22, 21, 16], // Video event kinds + generic repost (kind 16)
+      kinds: [34236, 16], // Kind 34236 video events + generic repost (kind 16)
       authors: authors,
       since: since != null ? (since.millisecondsSinceEpoch ~/ 1000) : null,
       until: until != null ? (until.millisecondsSinceEpoch ~/ 1000) : null,

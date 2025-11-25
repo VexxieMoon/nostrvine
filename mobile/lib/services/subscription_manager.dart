@@ -51,6 +51,16 @@ class SubscriptionManager {
 
     final id = '${name}_${DateTime.now().millisecondsSinceEpoch}';
 
+    // Log incoming filter for debugging
+    for (var i = 0; i < filters.length; i++) {
+      final f = filters[i];
+      Log.debug(
+        '📋 Subscription "$name" filter[$i]: kinds=${f.kinds}, e=${f.e}, authors=${f.authors?.length ?? 0}, limit=${f.limit}',
+        name: 'SubscriptionManager',
+        category: LogCategory.system,
+      );
+    }
+
     // Smart filtering: Check cache for event IDs and profile authors
     final filteredFilters = _filterCachedData(filters, onEvent);
 
@@ -63,6 +73,16 @@ class SubscriptionManager {
       );
       onComplete?.call();
       return id;
+    }
+
+    // Log filtered filters for debugging
+    for (var i = 0; i < filteredFilters.length; i++) {
+      final f = filteredFilters[i];
+      Log.debug(
+        '📋 After filtering, filter[$i]: kinds=${f.kinds}, e=${f.e}, authors=${f.authors?.length ?? 0}, limit=${f.limit}',
+        name: 'SubscriptionManager',
+        category: LogCategory.system,
+      );
     }
 
     // Create event stream from NostrService with filtered filters
@@ -140,6 +160,8 @@ class SubscriptionManager {
           since: filter.since,
           until: filter.until,
           search: filter.search,
+          e: filter.e,
+          p: filter.p,
           t: filter.t,
           h: filter.h,
         );
@@ -186,6 +208,8 @@ class SubscriptionManager {
           since: filter.since,
           until: filter.until,
           search: filter.search,
+          e: modifiedFilter?.e ?? filter.e,
+          p: modifiedFilter?.p ?? filter.p,
           t: modifiedFilter?.t ?? filter.t,
           h: modifiedFilter?.h ?? filter.h,
         );
@@ -201,6 +225,8 @@ class SubscriptionManager {
           since: filter.since,
           until: filter.until,
           search: filter.search,
+          e: filter.e,
+          p: filter.p,
           t: filter.t,
           h: filter.h,
         );

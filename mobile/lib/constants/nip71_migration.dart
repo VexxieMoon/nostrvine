@@ -12,22 +12,15 @@ class NIP71VideoKinds {
   // Repost kinds (unchanged)
   static const int repost = 6; // NIP-18 reposts
 
-  /// Get all NIP-71 video kinds
+  /// Get all NIP-71 video kinds that OpenVine subscribes to
+  /// OpenVine only uses kind 34236 (addressable short videos)
   static List<int> getAllVideoKinds() {
-    return [
-      shortVideo,
-      normalVideo,
-      addressableShortVideo,
-      addressableNormalVideo,
-    ];
+    return [addressableShortVideo]; // Only kind 34236
   }
 
-  /// Get primary kinds for new video events (post-migration)
+  /// Get primary kinds for new video events
   static List<int> getPrimaryVideoKinds() {
-    return [
-      shortVideo, // Primary for Vine-like content
-      addressableShortVideo, // Primary for addressable Vine content
-    ];
+    return [addressableShortVideo]; // Only kind 34236
   }
 
   /// Check if a kind is a video event
@@ -40,9 +33,9 @@ class NIP71VideoKinds {
     return addressableShortVideo; // Kind 34236 for addressable short videos
   }
 
-  /// Get the preferred non-addressable kind for new events
+  /// Get the preferred kind for new events (same as addressable)
   static int getPreferredKind() {
-    return shortVideo; // Kind 22 for regular short videos
+    return addressableShortVideo; // Kind 34236 - OpenVine only uses addressable
   }
 }
 

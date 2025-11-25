@@ -76,6 +76,27 @@ class UserAvatar extends StatelessWidget {
     return Image.asset(
       'assets/icon/user-avatar.png',
       fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        // If asset fails to load, show icon-based fallback
+        UnifiedLogger.debug(
+          'Avatar asset failed to load: $error',
+          name: 'UserAvatar',
+        );
+        return _buildIconFallback();
+      },
+    );
+  }
+
+  Widget _buildIconFallback() {
+    return Container(
+      color: VineTheme.vineGreen.withValues(alpha: 0.2),
+      child: Center(
+        child: Icon(
+          Icons.person,
+          color: VineTheme.vineGreen,
+          size: size * 0.5,
+        ),
+      ),
     );
   }
 }

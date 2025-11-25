@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Comments and NIP-71 Compliance (2025-11-24)
+
+#### Bug Fixes
+- **Fixed comments not loading on videos** - Comments now properly load when opening the comments panel
+  - Fixed `subscription_manager.dart` to preserve `e` and `p` tags when reconstructing filters
+  - Comment subscriptions require `e` tag to filter comments for specific videos
+  - Added comprehensive debug logging to trace comment loading flow
+- **Enforced NIP-71 kind 34236 only** - OpenVine now exclusively uses addressable short videos
+  - Updated `NIP71VideoKinds.getAllVideoKinds()` to return only `[34236]`
+  - Removed deprecated kinds 22, 21, 34235 from all subscription filters
+  - Fixed hardcoded kind arrays in relay diagnostics, search, and video queries
+
+#### Technical Details
+- Modified `lib/services/subscription_manager.dart`:
+  - Added `e: filter.e` and `p: filter.p` to all filter reconstruction points
+  - Prevents critical tag loss when filters are modified for cache optimization
+  - Added debug logging for subscription filter inspection
+- Modified `lib/constants/nip71_migration.dart`:
+  - `getAllVideoKinds()` now returns `[34236]` only
+  - `getPrimaryVideoKinds()` returns `[34236]` only
+  - `getPreferredKind()` returns `34236` instead of `22`
+- Modified `lib/providers/comments_provider.dart`:
+  - Added debug logging for comment loading flow tracing
+- Updated filter kinds in:
+  - `lib/screens/relay_diagnostic_screen.dart`
+  - `lib/services/nostr_service.dart`
+  - `lib/services/video_event_service.dart`
+
 ### Added - Seed Data Preloading (2025-11-11)
 
 #### Features
