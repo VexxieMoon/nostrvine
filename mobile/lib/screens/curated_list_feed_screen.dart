@@ -10,6 +10,7 @@ import 'package:openvine/screens/pure/explore_video_screen_pure.dart';
 import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/utils/unified_logger.dart';
 import 'package:openvine/widgets/composable_video_grid.dart';
+import 'package:openvine/utils/video_controller_cleanup.dart';
 
 class CuratedListFeedScreen extends ConsumerStatefulWidget {
   const CuratedListFeedScreen({
@@ -219,6 +220,7 @@ class _CuratedListFeedScreenState
               videoList: listVideos,
               contextTitle: widget.listName,
               startingIndex: _activeVideoIndex!,
+              useLocalActiveState: true, // Use local state since not using URL routing
             ),
             // Back button overlay to exit video mode
             Positioned(
@@ -238,6 +240,8 @@ class _CuratedListFeedScreenState
                     ),
                   ),
                   onPressed: () {
+                    // Stop all videos before switching to grid
+                    disposeAllVideoControllers(ref);
                     setState(() {
                       _activeVideoIndex = null;
                     });

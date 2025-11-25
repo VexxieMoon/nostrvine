@@ -43,6 +43,8 @@ class VideoFeedItem extends ConsumerStatefulWidget {
     this.hasBottomNavigation = true,
     this.contextTitle,
     this.disableAutoplay = false,
+    this.isActiveOverride,
+    this.disableTapNavigation = false,
   });
 
   final VideoEvent video;
@@ -52,6 +54,12 @@ class VideoFeedItem extends ConsumerStatefulWidget {
   final bool hasBottomNavigation;
   final String? contextTitle;
   final bool disableAutoplay;
+  /// When non-null, overrides isVideoActiveProvider for determining active state.
+  /// Used for custom contexts (like lists) that don't use URL routing.
+  final bool? isActiveOverride;
+  /// When true, tapping an inactive video won't navigate via router.
+  /// Instead, it just calls onTap callback. Used for contexts with local state management.
+  final bool disableTapNavigation;
 
   @override
   ConsumerState<VideoFeedItem> createState() => _VideoFeedItemState();
@@ -67,12 +75,23 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem> {
 
     // Listen for active state changes to control playback
     // Active state is now derived from URL + feed + foreground (pure provider)
+    // OR from isActiveOverride for custom contexts like lists
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return; // Safety check: don't use ref if widget is disposed
 
       if (widget.disableAutoplay) {
         Log.info('🎬 VideoFeedItem.initState: autoplay disabled for ${widget.video.id}',
             name: 'VideoFeedItem', category: LogCategory.video);
+        return;
+      }
+
+      // If using override, handle playback directly without provider listener
+      if (widget.isActiveOverride != null) {
+        Log.info('🎬 VideoFeedItem.initState: using isActiveOverride=${widget.isActiveOverride} for ${widget.video.id}',
+            name: 'VideoFeedItem', category: LogCategory.video);
+        if (widget.isActiveOverride!) {
+          _handlePlaybackChange(true);
+        }
         return;
       }
 
@@ -98,7 +117,50 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem> {
     });
   }
 
-  // No dispose needed - derived provider handles state automatically
+  @override
+  void didUpdateWidget(VideoFeedItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // React to override changes when parent updates current page
+    // This is critical for local state mode (curated lists, etc.)
+    if (widget.isActiveOverride != oldWidget.isActiveOverride) {
+      Log.info('🔄 VideoFeedItem.didUpdateWidget: override changed from ${oldWidget.isActiveOverride} to ${widget.isActiveOverride} for ${widget.video.id}',
+          name: 'VideoFeedItem', category: LogCategory.video);
+      if (widget.isActiveOverride != null) {
+        _handlePlaybackChange(widget.isActiveOverride!);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    // When using override mode, we need to stop playback manually on dispose
+    // (provider mode handles this automatically via provider cleanup)
+    if (widget.isActiveOverride == true && widget.video.videoUrl != null) {
+      Log.info('🛑 VideoFeedItem.dispose: stopping playback for ${widget.video.id} (override mode)',
+          name: 'VideoFeedItem', category: LogCategory.video);
+
+      // Directly pause the controller - don't rely on _handlePlaybackChange
+      // which might fail if ref is in an inconsistent state during dispose
+      try {
+        final controllerParams = VideoControllerParams(
+          videoId: widget.video.id,
+          videoUrl: widget.video.videoUrl!,
+          videoEvent: widget.video,
+        );
+        final controller = ref.read(individualVideoControllerProvider(controllerParams));
+        if (controller.value.isPlaying) {
+          Log.info('⏸️ VideoFeedItem.dispose: pausing video ${widget.video.id}',
+              name: 'VideoFeedItem', category: LogCategory.video);
+          controller.pause();
+        }
+      } catch (e) {
+        Log.error('❌ VideoFeedItem.dispose: failed to pause ${widget.video.id}: $e',
+            name: 'VideoFeedItem', category: LogCategory.video);
+      }
+    }
+    super.dispose();
+  }
 
   /// Handle playback state changes with generation counter to prevent race conditions
   void _handlePlaybackChange(bool shouldPlay) {
@@ -250,9 +312,14 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem> {
     }
 
     // Watch if this video is currently active
-    final isActive = ref.watch(isVideoActiveProvider(video.id));
+    // Use override if provided (for custom contexts like lists), otherwise use provider
+    // IMPORTANT: When override is non-null, skip provider watch entirely to avoid
+    // Riverpod rebuilds interfering with local state management
+    final bool isActive = widget.isActiveOverride != null
+        ? widget.isActiveOverride!
+        : ref.watch(isVideoActiveProvider(video.id));
 
-    Log.debug('📱 VideoFeedItem state: isActive=$isActive',
+    Log.debug('📱 VideoFeedItem state: isActive=$isActive (override=${widget.isActiveOverride})',
         name: 'VideoFeedItem', category: LogCategory.ui);
 
     // Check if tracker is Noop - if so, skip VisibilityDetector entirely to prevent timer leaks in tests
@@ -325,25 +392,32 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem> {
             } else {
               // Tapping inactive video: Navigate to this video's index
               // Active state is derived from URL, so navigation will update it
-              Log.info('🎯 Tap navigating to video ${video.id}... at index ${widget.index}',
-                  name: 'VideoFeedItem', category: LogCategory.ui);
-
-              // Read current route context to determine which route type to navigate to
-              final pageContext = ref.read(pageContextProvider);
-              pageContext.whenData((ctx) {
-                // Build new route with same type but different index
-                final newRoute = RouteContext(
-                  type: ctx.type,
-                  videoIndex: widget.index,
-                  npub: ctx.npub,
-                  hashtag: ctx.hashtag,
-                );
-
-                Log.info('🎯 Navigating to route: ${buildRoute(newRoute)}',
+              // Unless disableTapNavigation is true (for custom contexts like lists)
+              if (widget.disableTapNavigation) {
+                Log.info('🎯 Tap on inactive video ${video.id}... - navigation disabled, calling onTap only',
+                    name: 'VideoFeedItem', category: LogCategory.ui);
+                // Don't navigate - parent handles activation via onTap callback
+              } else {
+                Log.info('🎯 Tap navigating to video ${video.id}... at index ${widget.index}',
                     name: 'VideoFeedItem', category: LogCategory.ui);
 
-                context.go(buildRoute(newRoute));
-              });
+                // Read current route context to determine which route type to navigate to
+                final pageContext = ref.read(pageContextProvider);
+                pageContext.whenData((ctx) {
+                  // Build new route with same type but different index
+                  final newRoute = RouteContext(
+                    type: ctx.type,
+                    videoIndex: widget.index,
+                    npub: ctx.npub,
+                    hashtag: ctx.hashtag,
+                  );
+
+                  Log.info('🎯 Navigating to route: ${buildRoute(newRoute)}',
+                      name: 'VideoFeedItem', category: LogCategory.ui);
+
+                  context.go(buildRoute(newRoute));
+                });
+              }
             }
             widget.onTap?.call();
           } catch (e) {
@@ -910,6 +984,23 @@ class VideoOverlayActions extends ConsumerWidget {
                     name: 'VideoFeedItem',
                     category: LogCategory.ui,
                   );
+                  // Pause video before navigating to comments
+                  if (video.videoUrl != null) {
+                    try {
+                      final controllerParams = VideoControllerParams(
+                        videoId: video.id,
+                        videoUrl: video.videoUrl!,
+                        videoEvent: video,
+                      );
+                      final controller = ref.read(individualVideoControllerProvider(controllerParams));
+                      if (controller.value.isPlaying) {
+                        controller.pause();
+                      }
+                    } catch (e) {
+                      Log.error('Failed to pause video before comments: $e',
+                          name: 'VideoFeedItem', category: LogCategory.video);
+                    }
+                  }
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => CommentsScreen(videoEvent: video),

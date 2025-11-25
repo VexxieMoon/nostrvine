@@ -28,6 +28,7 @@ import 'package:openvine/providers/list_providers.dart';
 import 'package:openvine/screens/curated_list_feed_screen.dart';
 import 'package:openvine/screens/user_list_people_screen.dart';
 import 'package:openvine/screens/discover_lists_screen.dart';
+import 'package:openvine/utils/video_controller_cleanup.dart';
 
 /// Pure ExploreScreen using revolutionary Riverpod architecture
 class ExploreScreen extends ConsumerStatefulWidget {
@@ -368,6 +369,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               onPressed: () {
                 Log.info('Tapped Discover Lists button',
                     category: LogCategory.ui);
+                // Stop any playing videos before navigating
+                disposeAllVideoControllers(ref);
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const DiscoverListsScreen(),
@@ -542,6 +545,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                             Log.info(
                                 'Tapped my curated list: ${curatedList.name}',
                                 category: LogCategory.ui);
+                            // Stop any playing videos before navigating
+                            disposeAllVideoControllers(ref);
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (context) => CuratedListFeedScreen(
@@ -581,6 +586,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                           onTap: () {
                             Log.info('Tapped user list: ${userList.name}',
                                 category: LogCategory.ui);
+                            // Stop any playing videos before navigating
+                            disposeAllVideoControllers(ref);
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (context) =>
@@ -690,6 +697,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               onTap: () {
                 Log.info('Tapped subscribed list: ${curatedList.name}',
                     category: LogCategory.ui);
+                // Stop any playing videos before navigating
+                disposeAllVideoControllers(ref);
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => CuratedListFeedScreen(

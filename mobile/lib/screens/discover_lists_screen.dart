@@ -10,6 +10,7 @@ import 'package:openvine/services/curated_list_service.dart';
 import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/utils/unified_logger.dart';
 import 'package:openvine/widgets/list_card.dart';
+import 'package:openvine/utils/video_controller_cleanup.dart';
 
 class DiscoverListsScreen extends ConsumerStatefulWidget {
   const DiscoverListsScreen({super.key});
@@ -239,6 +240,8 @@ class _DiscoverListsScreenState extends ConsumerState<DiscoverListsScreen> {
             onTap: () {
               Log.info('Tapped discovered list: ${list.name}',
                   category: LogCategory.ui);
+              // Stop any playing videos before navigating
+              disposeAllVideoControllers(ref);
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => CuratedListFeedScreen(

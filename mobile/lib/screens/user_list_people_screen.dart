@@ -12,6 +12,7 @@ import 'package:openvine/utils/unified_logger.dart';
 import 'package:openvine/widgets/composable_video_grid.dart';
 import 'package:openvine/widgets/user_avatar.dart';
 import 'package:openvine/providers/app_providers.dart';
+import 'package:openvine/utils/video_controller_cleanup.dart';
 
 class UserListPeopleScreen extends ConsumerStatefulWidget {
   const UserListPeopleScreen({
@@ -278,29 +279,99 @@ class _UserListPeopleScreenState extends ConsumerState<UserListPeopleScreen> {
               videoList: videos,
               contextTitle: widget.userList.name,
               startingIndex: _activeVideoIndex!,
+              useLocalActiveState: true, // Use local state since not using URL routing
             ),
-            // Back button overlay to exit video mode
+            // Header bar showing list name and back button
             Positioned(
-              top: 50,
-              left: 16,
+              top: 0,
+              left: 0,
+              right: 0,
               child: SafeArea(
-                child: IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.arrow_back,
-                      color: VineTheme.whiteText,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.7),
+                        Colors.transparent,
+                      ],
                     ),
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _activeVideoIndex = null;
-                    });
-                  },
+                  child: Row(
+                    children: [
+                      // Back to grid button
+                      IconButton(
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.grid_view,
+                            color: VineTheme.whiteText,
+                            size: 20,
+                          ),
+                        ),
+                        onPressed: () {
+                          // Stop all videos before switching to grid
+                          disposeAllVideoControllers(ref);
+                          setState(() {
+                            _activeVideoIndex = null;
+                          });
+                        },
+                        tooltip: 'Back to grid',
+                      ),
+                      const SizedBox(width: 8),
+                      // List name
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              widget.userList.name,
+                              style: const TextStyle(
+                                color: VineTheme.whiteText,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (widget.userList.description != null)
+                              Text(
+                                widget.userList.description!,
+                                style: TextStyle(
+                                  color: VineTheme.secondaryText,
+                                  fontSize: 12,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
+                        ),
+                      ),
+                      // Video count indicator
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          '${_activeVideoIndex! + 1}/${videos.length}',
+                          style: const TextStyle(
+                            color: VineTheme.whiteText,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

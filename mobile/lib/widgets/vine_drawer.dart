@@ -12,6 +12,7 @@ import 'package:openvine/screens/relay_settings_screen.dart';
 // import 'package:openvine/screens/p2p_sync_screen.dart'; // Hidden for release
 import 'package:openvine/screens/settings_screen.dart';
 import 'package:openvine/theme/vine_theme.dart';
+import 'package:openvine/utils/video_controller_cleanup.dart';
 import 'package:openvine/widgets/bug_report_dialog.dart';
 import 'package:openvine/services/zendesk_support_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -154,6 +155,7 @@ class _VineDrawerState extends ConsumerState<VineDrawer> {
                     subtitle: 'Manage Nostr relay connections',
                     onTap: () {
                       Navigator.pop(context); // Close drawer
+                      disposeAllVideoControllers(ref);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -168,6 +170,7 @@ class _VineDrawerState extends ConsumerState<VineDrawer> {
                     subtitle: 'Configure Blossom upload servers',
                     onTap: () {
                       Navigator.pop(context); // Close drawer
+                      disposeAllVideoControllers(ref);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -197,6 +200,7 @@ class _VineDrawerState extends ConsumerState<VineDrawer> {
                     subtitle: 'Manage notification preferences',
                     onTap: () {
                       Navigator.pop(context); // Close drawer
+                      disposeAllVideoControllers(ref);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
