@@ -238,6 +238,15 @@ class VineRecordingNotifier extends StateNotifier<VineRecordingUIState> {
     );
   }
 
+  /// Stop the current segment without finishing the recording.
+  /// This allows the user to record multiple segments before finalizing.
+  Future<void> stopSegment() async {
+    await _controller.stopRecording();
+    updateState();
+    Log.info('📹 Segment stopped, total segments: ${_controller.segments.length}',
+        category: LogCategory.video);
+  }
+
   Future<(File?, NativeProofData?)> finishRecording() async {
     final result = await _controller.finishRecording();
     updateState();

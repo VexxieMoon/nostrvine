@@ -577,12 +577,15 @@ class _UniversalCameraScreenPureState
                 ),
               ),
 
-              // Camera controls (top right)
+              // Camera controls (right side, vertically centered)
               if (recordingState.isInitialized && !recordingState.isRecording)
                 Positioned(
-                  top: 16,
+                  top: 0,
+                  bottom: 180, // Above the bottom recording controls
                   right: 16,
-                  child: _buildCameraControls(recordingState),
+                  child: Center(
+                    child: _buildCameraControls(recordingState),
+                  ),
                 ),
 
               // Countdown overlay
@@ -867,47 +870,65 @@ class _UniversalCameraScreenPureState
               ),
             ),
 
-            // Switch camera button - only show if multiple cameras available
-            if (recordingState.canSwitchCamera)
-              IconButton(
-                onPressed: recordingState.isRecording ? null : _switchCamera,
-                icon: Icon(
-                  Icons.flip_camera_ios,
-                  color: recordingState.isRecording
-                      ? Colors.grey
-                      : Colors.white,
-                  size: 32,
-                ),
-              ),
+            // Camera switch button moved to right side controls
+            // Placeholder to balance the row layout
+            const SizedBox(width: 48),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildCameraControls(dynamic recordingState) {
+  Widget _buildCameraControls(VineRecordingUIState recordingState) {
     final cameraInterface = ref.read(vineRecordingProvider.notifier).cameraInterface;
-    final isFrontCamera = cameraInterface is EnhancedMobileCameraInterface && cameraInterface.isFrontCamera;
+    // Check if front camera is active for either camera interface type
+    final isFrontCamera = (cameraInterface is EnhancedMobileCameraInterface && cameraInterface.isFrontCamera) ||
+        (cameraInterface is CamerAwesomeMobileCameraInterface && cameraInterface.isFrontCamera);
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
+        // Camera switch button (front/back)
+        if (recordingState.canSwitchCamera) ...[
+          _buildControlButton(
+            icon: Icons.flip_camera_ios,
+            onTap: _switchCamera,
+          ),
+          const SizedBox(height: 12),
+        ],
         // Flash toggle (only show for rear camera - front cameras don't have flash)
         if (!isFrontCamera) ...[
-          IconButton(
-            onPressed: _toggleFlash,
-            icon: Icon(_getFlashIcon(), color: Colors.white, size: 28),
+          _buildControlButton(
+            icon: _getFlashIcon(),
+            onTap: _toggleFlash,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
         ],
         // Timer toggle
-        IconButton(
-          onPressed: _toggleTimer,
-          icon: Icon(_getTimerIcon(), color: Colors.white, size: 28),
+        _buildControlButton(
+          icon: _getTimerIcon(),
+          onTap: _toggleTimer,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         // Aspect ratio toggle
         _buildAspectRatioToggle(recordingState),
       ],
+    );
+  }
+
+  Widget _buildControlButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.5),
+        shape: BoxShape.circle,
+      ),
+      child: IconButton(
+        onPressed: onTap,
+        icon: Icon(icon, color: Colors.white, size: 26),
+      ),
     );
   }
 
@@ -1090,58 +1111,31 @@ class _UniversalCameraScreenPureState
   }
 
   void _stopRecording() async {
-    // Set processing state immediately - provider's stopRecording() auto-finishes
-    // and runs FFmpeg, so we need to show "Processing video..." during that time
-    if (_isProcessing) {
-      Log.warning(
-        '📹 Already processing, ignoring stop recording call',
-        category: LogCategory.video,
-      );
-      return;
-    }
-
-    setState(() {
-      _isProcessing = true;
-    });
-
+    // Just stop the current segment - don't finish the recording
+    // This allows the user to record multiple segments before finalizing
     try {
       final notifier = ref.read(vineRecordingProvider.notifier);
-      Log.info('📹 Stopping recording segment', category: LogCategory.video);
-      final result = await notifier.stopRecording();
+      Log.info('📹 Stopping recording segment (not finishing)', category: LogCategory.video);
+      await notifier.stopSegment();
 
-      // Provider's stopRecording() auto-finishes and creates a draft
-      if (result.draftId != null && mounted) {
-        Log.info(
-          '📹 Recording completed, draft created: ${result.draftId}',
-          category: LogCategory.video,
-        );
-
-        // Navigate to metadata screen with the draft
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => VideoMetadataScreenPure(draftId: result.draftId!),
-          ),
-        );
-
-        // After metadata screen returns, navigate to profile
-        if (mounted) {
-          disposeAllVideoControllers(ref);
-          context.go('/profile/me/0');
-        }
-      }
-    } catch (e) {
-      Log.error(
-        '📹 UniversalCameraScreenPure: Stop recording failed: $e',
+      Log.info(
+        '📹 Segment stopped, user can record more or tap Publish to finish',
         category: LogCategory.video,
       );
 
-      _showErrorSnackBar('Stop recording failed: $e');
-    } finally {
+      // Reset processing state - we're NOT processing yet, just paused between segments
       if (mounted) {
         setState(() {
           _isProcessing = false;
         });
       }
+    } catch (e) {
+      Log.error(
+        '📹 UniversalCameraScreenPure: Stop segment failed: $e',
+        category: LogCategory.video,
+      );
+
+      _showErrorSnackBar('Stop recording failed: $e');
     }
   }
 
@@ -1234,28 +1228,30 @@ class _UniversalCameraScreenPureState
 
     final cameraInterface = ref.read(vineRecordingProvider.notifier).cameraInterface;
 
+    // Update local state to cycle through: off → torch (for video recording)
+    // For video, we use torch mode (continuous light) instead of flash
+    setState(() {
+      switch (_flashMode) {
+        case FlashMode.off:
+          _flashMode = FlashMode.torch;
+          break;
+        case FlashMode.torch:
+        case FlashMode.auto:
+        case FlashMode.always:
+          _flashMode = FlashMode.off;
+          break;
+      }
+    });
+
+    Log.info('🔦 Flash mode toggled to: $_flashMode', category: LogCategory.video);
+
+    // Apply the new flash mode to camera - support both camera interfaces
     if (cameraInterface is EnhancedMobileCameraInterface) {
-      // Update local state to cycle through: off → torch (for video recording)
-      // For video, we use torch mode (continuous light) instead of flash
-      setState(() {
-        switch (_flashMode) {
-          case FlashMode.off:
-            _flashMode = FlashMode.torch;
-            break;
-          case FlashMode.torch:
-          case FlashMode.auto:
-          case FlashMode.always:
-            _flashMode = FlashMode.off;
-            break;
-        }
-      });
-
-      Log.info('🔦 Flash mode toggled to: $_flashMode', category: LogCategory.video);
-
-      // Apply the new flash mode to camera
+      cameraInterface.setFlashMode(_flashMode);
+    } else if (cameraInterface is CamerAwesomeMobileCameraInterface) {
       cameraInterface.setFlashMode(_flashMode);
     } else {
-      Log.warning('🔦 Camera interface is not EnhancedMobileCameraInterface', category: LogCategory.video);
+      Log.warning('🔦 Camera interface does not support flash control', category: LogCategory.video);
     }
   }
 

@@ -4,6 +4,7 @@
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
+import 'package:camera/camera.dart' as camera_pkg;
 import 'package:openvine/utils/unified_logger.dart';
 
 /// Information about a physical camera sensor
@@ -104,6 +105,34 @@ class CameraZoomDetector {
             deviceId: sensorData.telephoto!.uid,
             displayName: sensorData.telephoto!.name,
           ));
+        }
+
+        // Detect front camera using Flutter camera package
+        try {
+          final availableCameras = await camera_pkg.availableCameras();
+          final frontCamera = availableCameras.where(
+            (cam) => cam.lensDirection == camera_pkg.CameraLensDirection.front,
+          ).firstOrNull;
+
+          if (frontCamera != null) {
+            cameras.add(PhysicalCameraSensor(
+              type: 'front',
+              zoomFactor: 1.0,
+              deviceId: frontCamera.name,
+              displayName: 'Front Camera',
+            ));
+            Log.info(
+              'Front camera detected: ${frontCamera.name}',
+              name: 'CameraZoomDetector',
+              category: LogCategory.system,
+            );
+          }
+        } catch (e) {
+          Log.warning(
+            'Failed to detect front camera: $e',
+            name: 'CameraZoomDetector',
+            category: LogCategory.system,
+          );
         }
 
         Log.info(

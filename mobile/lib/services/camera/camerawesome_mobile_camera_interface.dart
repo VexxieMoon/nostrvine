@@ -15,6 +15,12 @@ import 'package:openvine/utils/unified_logger.dart';
 class CamerAwesomeMobileCameraInterface extends CameraPlatformInterface {
   CameraState? _cameraState;
   bool _isRecording = false;
+  // Hold reference to CaptureRequest to prevent garbage collection
+  CaptureRequest? _currentCaptureRequest;
+
+  // Use a static to ensure the pathBuilder closure can access the current path
+  // This is needed because CameraAwesomeBuilder captures the closure at build time
+  static String? _pendingRecordingPath;
   String? _currentRecordingPath;
 
   // Physical camera sensors detected on device
@@ -120,8 +126,14 @@ class CamerAwesomeMobileCameraInterface extends CameraPlatformInterface {
       Log.info('Starting video recording to: $filePath',
           name: 'CamerAwesomeCamera', category: LogCategory.system);
 
+      // IMPORTANT: Set BOTH static and instance path BEFORE calling startRecording
+      // The static is used by pathBuilder (which may be in a different instance due to closure capture)
+      CamerAwesomeMobileCameraInterface._pendingRecordingPath = filePath;
       _currentRecordingPath = filePath;
       _isRecording = true;
+
+      Log.info('Path set to $filePath (static: $_pendingRecordingPath) before starting recording',
+          name: 'CamerAwesomeCamera', category: LogCategory.system);
 
       // Start recording via CamerAwesome state
       await _cameraState!.when(
@@ -129,8 +141,10 @@ class CamerAwesomeMobileCameraInterface extends CameraPlatformInterface {
           throw Exception('Camera in photo mode, cannot record video');
         },
         onVideoMode: (state) async {
-          // startRecording returns Future<CaptureRequest>, uses pathBuilder from SaveConfig
-          await state.startRecording();
+          // startRecording returns CaptureRequest - hold reference to prevent GC
+          _currentCaptureRequest = await state.startRecording();
+          Log.info('Recording started with capture request: ${_currentCaptureRequest?.path}',
+              name: 'CamerAwesomeCamera', category: LogCategory.system);
         },
         onVideoRecordingMode: (state) async {
           Log.warning('Already in recording mode',
@@ -140,6 +154,12 @@ class CamerAwesomeMobileCameraInterface extends CameraPlatformInterface {
           throw Exception('Camera still preparing');
         },
       );
+
+      // Verify the path was used correctly
+      if (_currentCaptureRequest?.path != filePath) {
+        Log.warning('Recording path mismatch! Expected: $filePath, Got: ${_currentCaptureRequest?.path}',
+            name: 'CamerAwesomeCamera', category: LogCategory.system);
+      }
 
       Log.info('Video recording started successfully',
           name: 'CamerAwesomeCamera', category: LogCategory.system);
@@ -169,32 +189,46 @@ class CamerAwesomeMobileCameraInterface extends CameraPlatformInterface {
           name: 'CamerAwesomeCamera', category: LogCategory.system);
 
       final recordedPath = _currentRecordingPath;
+      bool didStop = false;
 
       // Stop recording via CamerAwesome state
       await _cameraState!.when(
         onPhotoMode: (state) async {
-          throw Exception('Not in video mode');
+          Log.warning('Camera in photo mode during stop - recording may have failed',
+              name: 'CamerAwesomeCamera', category: LogCategory.system);
         },
         onVideoMode: (state) async {
-          Log.warning('Not in recording mode',
+          Log.warning('Camera in video mode (not recording mode) during stop - recording may have failed',
               name: 'CamerAwesomeCamera', category: LogCategory.system);
         },
         onVideoRecordingMode: (state) async {
           await state.stopRecording();
+          didStop = true;
         },
         onPreparingCamera: (state) async {
-          throw Exception('Camera still preparing');
+          Log.warning('Camera still preparing during stop',
+              name: 'CamerAwesomeCamera', category: LogCategory.system);
         },
       );
 
       _isRecording = false;
       _currentRecordingPath = null;
+      _currentCaptureRequest = null; // Clear reference
 
-      Log.info('Video recording stopped: $recordedPath',
-          name: 'CamerAwesomeCamera', category: LogCategory.system);
-
-      return recordedPath;
+      if (didStop) {
+        Log.info('Video recording stopped: $recordedPath',
+            name: 'CamerAwesomeCamera', category: LogCategory.system);
+        return recordedPath;
+      } else {
+        Log.warning('Recording stop may not have completed properly',
+            name: 'CamerAwesomeCamera', category: LogCategory.system);
+        // Still return the path - the file might exist from a successful recording
+        return recordedPath;
+      }
     } catch (e) {
+      _isRecording = false;
+      _currentRecordingPath = null;
+      _currentCaptureRequest = null;
       Log.error('Failed to stop recording: $e',
           name: 'CamerAwesomeCamera', category: LogCategory.system);
       rethrow;
@@ -214,59 +248,36 @@ class CamerAwesomeMobileCameraInterface extends CameraPlatformInterface {
     }
 
     try {
-      if (_isFrontCamera) {
-        // Currently on front camera - switch back to last rear camera
-        Log.info(
-          'Flipping from front to rear camera (index: $_lastRearCameraIndex)',
-          name: 'CamerAwesomeCamera',
-          category: LogCategory.system,
-        );
+      Log.info(
+        'Switching camera: currently ${_isFrontCamera ? "front" : "rear"}',
+        name: 'CamerAwesomeCamera',
+        category: LogCategory.system,
+      );
 
-        _isFrontCamera = false;
+      // Use CamerAwesome's built-in switchCameraSensor which properly handles
+      // front/back camera switching with correct surface management
+      await _cameraState!.switchCameraSensor(
+        aspectRatio: CameraAspectRatios.ratio_16_9,
+        zoom: 0.0,
+        flash: FlashMode.none,
+      );
+
+      // Toggle our tracking state
+      _isFrontCamera = !_isFrontCamera;
+
+      if (!_isFrontCamera) {
+        // Switched back to rear - restore the last rear camera index
         _currentSensorIndex = _lastRearCameraIndex;
-        final rearSensor = _availableSensors[_currentSensorIndex];
-
-        Log.info(
-          'Switching to rear: ${rearSensor.displayName} (${rearSensor.zoomFactor}x)',
-          name: 'CamerAwesomeCamera',
-          category: LogCategory.system,
-        );
-
-        if (rearSensor.isDigital) {
-          // Digital zoom
-          final normalizedZoom = (rearSensor.zoomFactor - 1.0) / 3.0;
-          await _cameraState!.sensorConfig.setZoom(normalizedZoom.clamp(0.0, 1.0));
-        } else {
-          // Physical sensor switch
-          final sensorType = _mapToSensorType(rearSensor.type);
-          _cameraState!.setSensorType(0, sensorType, rearSensor.deviceId);
-          await _cameraState!.sensorConfig.setZoom(0.0);
-        }
       } else {
-        // Currently on rear camera - switch to front camera
-        Log.info(
-          'Flipping from rear to front camera (saving rear index: $_currentSensorIndex)',
-          name: 'CamerAwesomeCamera',
-          category: LogCategory.system,
-        );
-
-        _lastRearCameraIndex = _currentSensorIndex; // Remember current rear camera
-        _isFrontCamera = true;
-
-        Log.info(
-          'Switching to front: ${_frontCamera!.displayName}',
-          name: 'CamerAwesomeCamera',
-          category: LogCategory.system,
-        );
-
-        // Switch to front camera
-        final sensorType = _mapToSensorType(_frontCamera!.type);
-        _cameraState!.setSensorType(0, sensorType, _frontCamera!.deviceId);
-        await _cameraState!.sensorConfig.setZoom(0.0);
+        // Switching to front - save current rear camera index
+        _lastRearCameraIndex = _currentSensorIndex;
       }
 
-      Log.info('Camera flip completed successfully',
-          name: 'CamerAwesomeCamera', category: LogCategory.system);
+      Log.info(
+        'Camera flip completed: now ${_isFrontCamera ? "front" : "rear"}',
+        name: 'CamerAwesomeCamera',
+        category: LogCategory.system,
+      );
     } catch (e) {
       Log.error('Failed to flip camera: $e',
           name: 'CamerAwesomeCamera', category: LogCategory.system);
@@ -371,9 +382,17 @@ class CamerAwesomeMobileCameraInterface extends CameraPlatformInterface {
     return CameraAwesomeBuilder.custom(
       saveConfig: SaveConfig.video(
         pathBuilder: (sensors) async {
-          // Path will be provided via startRecordingSegment
+          // Use static path to avoid closure capture issues
+          // The static is set by startRecordingSegment before this is called
+          final path = CamerAwesomeMobileCameraInterface._pendingRecordingPath;
+          Log.info('pathBuilder called, using path: $path',
+              name: 'CamerAwesomeCamera', category: LogCategory.system);
+          if (path == null || path == '/tmp/temp.mp4') {
+            Log.error('pathBuilder called with invalid path! _pendingRecordingPath=$path',
+                name: 'CamerAwesomeCamera', category: LogCategory.system);
+          }
           return SingleCaptureRequest(
-            _currentRecordingPath ?? '/tmp/temp.mp4',
+            path ?? '/tmp/temp.mp4',
             sensors.first,
           );
         },
@@ -398,7 +417,7 @@ class CamerAwesomeMobileCameraInterface extends CameraPlatformInterface {
   }
 
   @override
-  bool get canSwitchCamera => _availableSensors.length > 1;
+  bool get canSwitchCamera => _availableSensors.length > 1 || _frontCamera != null;
 
   /// Get available physical sensors for zoom UI
   List<PhysicalCameraSensor> get availableSensors => _availableSensors;
@@ -413,6 +432,49 @@ class CamerAwesomeMobileCameraInterface extends CameraPlatformInterface {
 
   /// Stream of camera state changes
   Stream<CameraState> get cameraStateStream => _stateController.stream;
+
+  /// Check if currently using front camera
+  bool get isFrontCamera => _isFrontCamera;
+
+  /// Set flash mode (torch for video recording)
+  Future<void> setFlashMode(dynamic mode) async {
+    if (_cameraState == null) {
+      Log.warning('Cannot set flash mode - camera not initialized',
+          name: 'CamerAwesomeCamera', category: LogCategory.system);
+      return;
+    }
+
+    // Don't enable flash for front camera
+    if (_isFrontCamera) {
+      Log.info('Flash not available for front camera',
+          name: 'CamerAwesomeCamera', category: LogCategory.system);
+      return;
+    }
+
+    try {
+      // CamerAwesome uses its own FlashMode enum
+      FlashMode awesomeFlashMode;
+
+      // Handle both camera package FlashMode and direct string/enum
+      final modeStr = mode.toString().toLowerCase();
+      if (modeStr.contains('torch')) {
+        awesomeFlashMode = FlashMode.always; // CamerAwesome's equivalent for continuous light
+      } else if (modeStr.contains('auto')) {
+        awesomeFlashMode = FlashMode.auto;
+      } else if (modeStr.contains('always') || modeStr.contains('on')) {
+        awesomeFlashMode = FlashMode.always;
+      } else {
+        awesomeFlashMode = FlashMode.none;
+      }
+
+      await _cameraState!.sensorConfig.setFlashMode(awesomeFlashMode);
+      Log.info('Flash mode set to $awesomeFlashMode',
+          name: 'CamerAwesomeCamera', category: LogCategory.system);
+    } catch (e) {
+      Log.error('Failed to set flash mode: $e',
+          name: 'CamerAwesomeCamera', category: LogCategory.system);
+    }
+  }
 
   @override
   void dispose() {
