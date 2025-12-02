@@ -9,8 +9,9 @@ import 'package:openvine/utils/unified_logger.dart';
 
 /// Service for interacting with Zendesk Support SDK
 class ZendeskSupportService {
-  static const MethodChannel _channel =
-      MethodChannel('com.openvine/zendesk_support');
+  static const MethodChannel _channel = MethodChannel(
+    'com.openvine/zendesk_support',
+  );
 
   static bool _initialized = false;
 
@@ -46,7 +47,10 @@ class ZendeskSupportService {
       _initialized = (result == true);
 
       if (_initialized) {
-        Log.info('✅ Zendesk initialized successfully', category: LogCategory.system);
+        Log.info(
+          '✅ Zendesk initialized successfully',
+          category: LogCategory.system,
+        );
       } else {
         Log.warning(
           'Zendesk initialization failed - bug reports will use email fallback',
@@ -63,7 +67,10 @@ class ZendeskSupportService {
       _initialized = false;
       return false;
     } catch (e) {
-      Log.error('Unexpected error initializing Zendesk: $e', category: LogCategory.system);
+      Log.error(
+        'Unexpected error initializing Zendesk: $e',
+        category: LogCategory.system,
+      );
       _initialized = false;
       return false;
     }
@@ -102,7 +109,10 @@ class ZendeskSupportService {
       );
       return false;
     } catch (e) {
-      Log.error('Unexpected error showing Zendesk screen: $e', category: LogCategory.system);
+      Log.error(
+        'Unexpected error showing Zendesk screen: $e',
+        category: LogCategory.system,
+      );
       return false;
     }
   }
@@ -131,7 +141,10 @@ class ZendeskSupportService {
       );
       return false;
     } catch (e) {
-      Log.error('Unexpected error showing ticket list: $e', category: LogCategory.system);
+      Log.error(
+        'Unexpected error showing ticket list: $e',
+        category: LogCategory.system,
+      );
       return false;
     }
   }
