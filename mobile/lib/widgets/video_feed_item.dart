@@ -28,6 +28,7 @@ import 'package:openvine/widgets/video_error_overlay.dart';
 import 'package:openvine/widgets/video_metrics_tracker.dart';
 import 'package:openvine/router/nav_extensions.dart';
 import 'package:openvine/utils/string_utils.dart';
+import 'package:openvine/widgets/circular_icon_button.dart';
 import 'package:openvine/widgets/clickable_hashtag_text.dart';
 import 'package:openvine/widgets/proofmode_badge.dart';
 import 'package:openvine/widgets/proofmode_badge_row.dart';
@@ -1170,7 +1171,7 @@ class VideoOverlayActions extends ConsumerWidget {
                         explicitChildNodes: true,
                         button: true,
                         label: isLiked ? 'Unlike video' : 'Like video',
-                        child: _buildCircularIconButton(
+                        child: CircularIconButton(
                           onPressed: isLikeInProgress
                               ? () {}
                               : () async {
@@ -1243,7 +1244,7 @@ class VideoOverlayActions extends ConsumerWidget {
                         explicitChildNodes: true,
                         button: true,
                         label: 'View comments',
-                        child: _buildCircularIconButton(
+                        child: CircularIconButton(
                           onPressed: () {
                             Log.info(
                               '💬 Comment button tapped for ${video.id}',
@@ -1347,7 +1348,7 @@ class VideoOverlayActions extends ConsumerWidget {
                             label: isReposted
                                 ? 'Remove repost'
                                 : 'Repost video',
-                            child: _buildCircularIconButton(
+                            child: CircularIconButton(
                               onPressed:
                                   socialState.isRepostInProgress(video.id)
                                   ? () {}
@@ -1422,7 +1423,7 @@ class VideoOverlayActions extends ConsumerWidget {
                         explicitChildNodes: true,
                         button: true,
                         label: 'Share video',
-                        child: _buildCircularIconButton(
+                        child: CircularIconButton(
                           onPressed: () {
                             Log.info(
                               '📤 Share button tapped for ${video.id}',
@@ -1473,7 +1474,7 @@ class VideoOverlayActions extends ConsumerWidget {
                         explicitChildNodes: true,
                         button: true,
                         label: 'Report video',
-                        child: _buildCircularIconButton(
+                        child: CircularIconButton(
                           onPressed: () {
                             Log.info(
                               '🚩 Report button tapped for ${video.id}',
@@ -1518,77 +1519,11 @@ class VideoOverlayActions extends ConsumerWidget {
                   ),
 
                   // Edit button (only show for owned videos when feature is enabled)
-                  _buildEditButton(context, ref, video),
+                  _VideoEditButton(video: video),
                 ],
               ),
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  /// Build icon button with semi-transparent circular background
-  Widget _buildCircularIconButton({
-    required VoidCallback onPressed,
-    required Widget icon,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.3),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        onPressed: onPressed,
-        icon: icon,
-        padding: EdgeInsets.zero,
-      ),
-    );
-  }
-
-  /// Build edit button if video is owned by current user and feature flag is enabled
-  Widget _buildEditButton(
-    BuildContext context,
-    WidgetRef ref,
-    VideoEvent video,
-  ) {
-    // Check feature flag
-    final featureFlagService = ref.watch(featureFlagServiceProvider);
-    final isEditorEnabled = featureFlagService.isEnabled(
-      FeatureFlag.enableVideoEditorV1,
-    );
-
-    if (!isEditorEnabled) {
-      return const SizedBox.shrink();
-    }
-
-    // Check ownership
-    final authService = ref.watch(authServiceProvider);
-    final currentUserPubkey = authService.currentPublicKeyHex;
-    final isOwnVideo =
-        currentUserPubkey != null && currentUserPubkey == video.pubkey;
-
-    if (!isOwnVideo) {
-      return const SizedBox.shrink();
-    }
-
-    // Show edit button
-    return Column(
-      children: [
-        const SizedBox(height: 16),
-        IconButton(
-          onPressed: () {
-            Log.info(
-              '✏️ Edit button tapped for ${video.id}',
-              name: 'VideoFeedItem',
-              category: LogCategory.ui,
-            );
-
-            // Show edit dialog directly (works on all platforms)
-            showEditDialogForVideo(context, video);
-          },
-          tooltip: 'Edit video',
-          icon: const Icon(Icons.edit, color: Colors.white, size: 32),
         ),
       ],
     );
@@ -1690,5 +1625,63 @@ class VideoOverlayActions extends ConsumerWidget {
         }
       }
     }
+  }
+}
+
+/// Edit button shown only for owned videos when feature flag is enabled.
+///
+/// This widget checks:
+/// 1. Feature flag `enableVideoEditorV1` is enabled
+/// 2. Current user owns the video
+///
+/// If both conditions are met, displays an edit button that opens the
+/// video edit dialog.
+class _VideoEditButton extends ConsumerWidget {
+  const _VideoEditButton({required this.video});
+
+  final VideoEvent video;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Check feature flag
+    final featureFlagService = ref.watch(featureFlagServiceProvider);
+    final isEditorEnabled = featureFlagService.isEnabled(
+      FeatureFlag.enableVideoEditorV1,
+    );
+
+    if (!isEditorEnabled) {
+      return const SizedBox.shrink();
+    }
+
+    // Check ownership
+    final authService = ref.watch(authServiceProvider);
+    final currentUserPubkey = authService.currentPublicKeyHex;
+    final isOwnVideo =
+        currentUserPubkey != null && currentUserPubkey == video.pubkey;
+
+    if (!isOwnVideo) {
+      return const SizedBox.shrink();
+    }
+
+    // Show edit button
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        IconButton(
+          onPressed: () {
+            Log.info(
+              '✏️ Edit button tapped for ${video.id}',
+              name: 'VideoFeedItem',
+              category: LogCategory.ui,
+            );
+
+            // Show edit dialog directly (works on all platforms)
+            showEditDialogForVideo(context, video);
+          },
+          tooltip: 'Edit video',
+          icon: const Icon(Icons.edit, color: Colors.white, size: 32),
+        ),
+      ],
+    );
   }
 }
