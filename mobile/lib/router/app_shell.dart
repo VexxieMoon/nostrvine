@@ -423,14 +423,35 @@ class AppShell extends ConsumerWidget {
         type: BottomNavigationBarType.fixed,
         currentIndex: currentIndex.clamp(0, 3),
         onTap: (index) => _handleTabTap(context, ref, index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
+            icon: Semantics(
+              identifier: 'home_tab',
+              child: const Icon(Icons.home),
+            ),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Semantics(
+              identifier: 'explore_tab',
+              child: const Icon(Icons.explore),
+            ),
+            label: 'Explore',
+          ),
+          BottomNavigationBarItem(
+            icon: Semantics(
+              identifier: 'notifications_tab',
+              child: const Icon(Icons.notifications),
+            ),
             label: 'Notifications',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(
+            icon: Semantics(
+              identifier: 'profile_tab',
+              child: const Icon(Icons.person),
+            ),
+            label: 'Profile',
+          ),
         ],
       ),
     );
