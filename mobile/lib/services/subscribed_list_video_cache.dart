@@ -35,6 +35,15 @@ class SubscribedListVideoCache extends ChangeNotifier {
   /// Regex for validating 64-character hex event IDs
   static final _hexIdRegex = RegExp(r'^[a-fA-F0-9]{64}$');
 
+  /// Timer for debouncing notifications when videos stream in
+  Timer? _notifyDebounceTimer;
+
+  @override
+  void dispose() {
+    _notifyDebounceTimer?.cancel();
+    super.dispose();
+  }
+
   /// Returns all cached videos from subscribed lists
   List<VideoEvent> getVideos() {
     return _cachedVideos.values.toList();
@@ -152,9 +161,20 @@ class SubscribedListVideoCache extends ChangeNotifier {
   }
 
   /// Adds a video to the cache and associates it with a list
+  /// Triggers a debounced notification so UI updates as videos stream in
   void _addVideoToCache(VideoEvent video, String listId) {
     _cachedVideos[video.id] = video;
     _videoToLists.putIfAbsent(video.id, () => {}).add(listId);
+    _scheduleNotify();
+  }
+
+  /// Debounced notification - waits 100ms for more videos before notifying
+  /// This allows videos to stream in without causing excessive rebuilds
+  void _scheduleNotify() {
+    _notifyDebounceTimer?.cancel();
+    _notifyDebounceTimer = Timer(const Duration(milliseconds: 100), () {
+      notifyListeners();
+    });
   }
 
   /// Finds a video by addressable coordinate (kind:pubkey:d-tag)
