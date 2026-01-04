@@ -251,7 +251,10 @@ class CuratedListService extends ChangeNotifier {
         .toList();
   }
 
-  /// Initialize the service and create default list if needed
+  /// Initialize the service and create default list if needed.
+  ///
+  /// This method returns quickly after loading local cache.
+  /// Relay sync happens in background and does not block initialization.
   Future<void> initialize() async {
     try {
       if (!_authService.isAuthenticated) {
@@ -268,18 +271,41 @@ class CuratedListService extends ChangeNotifier {
         await _createDefaultList();
       }
 
-      // Sync with relays to get all user's lists
-      await fetchUserListsFromRelays();
-
+      // Mark initialized IMMEDIATELY after local cache is ready
+      // This allows downstream consumers to access cached lists without waiting
       _isInitialized = true;
+      notifyListeners();
       Log.info(
-        'Curated list service initialized with ${_lists.length} lists',
+        'Curated list service initialized with ${_lists.length} lists (local cache ready)',
+        name: 'CuratedListService',
+        category: LogCategory.system,
+      );
+
+      // Sync with relays in BACKGROUND - does not block initialization
+      // When relay sync completes, it will merge new lists and notify listeners
+      unawaited(_syncWithRelaysInBackground());
+    } catch (e) {
+      Log.error(
+        'Failed to initialize curated list service: $e',
+        name: 'CuratedListService',
+        category: LogCategory.system,
+      );
+    }
+  }
+
+  /// Sync with relays in background without blocking.
+  /// Merges relay data with local cache when complete.
+  Future<void> _syncWithRelaysInBackground() async {
+    try {
+      await fetchUserListsFromRelays();
+      Log.info(
+        'Background relay sync complete, now have ${_lists.length} lists',
         name: 'CuratedListService',
         category: LogCategory.system,
       );
     } catch (e) {
       Log.error(
-        'Failed to initialize curated list service: $e',
+        'Background relay sync failed: $e',
         name: 'CuratedListService',
         category: LogCategory.system,
       );
