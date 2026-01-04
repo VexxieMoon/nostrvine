@@ -260,8 +260,14 @@ class _VideoEditorScreenState extends ConsumerState<VideoEditorScreen> {
     }
   }
 
-  void _handleAddText() {
-    showModalBottomSheet(
+  void _handleAddText() async {
+    // Pause video and audio while editing text
+    await _videoController?.pause();
+    await _audioPlayer?.pause();
+
+    if (!mounted) return;
+
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -275,6 +281,12 @@ class _VideoEditorScreenState extends ConsumerState<VideoEditorScreen> {
         onCancel: () => Navigator.of(context).pop(),
       ),
     );
+
+    // Resume playback after closing text editor
+    if (mounted) {
+      await _videoController?.play();
+      await _audioPlayer?.play();
+    }
   }
 
   void _handleAddSound() async {

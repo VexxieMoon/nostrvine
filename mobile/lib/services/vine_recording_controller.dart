@@ -1242,6 +1242,12 @@ class VineRecordingController {
                 name: 'VineRecordingController',
                 category: LogCategory.system,
               );
+
+              // CRITICAL: Force UI update after segment is added
+              // The early _setState(paused) at the start of stopRecording happens
+              // BEFORE the segment is added, so UI has stale hasSegments=false.
+              // This ensures UI reflects the newly added segment.
+              _onStateChanged?.call();
             }
           } else {
             Log.warning(
