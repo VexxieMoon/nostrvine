@@ -453,9 +453,15 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem> {
     // Use override if provided (for custom contexts like lists), otherwise use provider
     // IMPORTANT: When override is non-null, skip provider watch entirely to avoid
     // Riverpod rebuilds interfering with local state management
-    final bool isActive = widget.isActiveOverride != null
+    final bool isActiveFromProvider = widget.isActiveOverride != null
         ? widget.isActiveOverride!
         : ref.watch(isVideoActiveProvider(video.stableId));
+
+    // Check if a dialog/modal is covering this screen - if so, pause playback
+    // ModalRoute.of(context)?.isCurrent returns false when a dialog is on top
+    final modalRoute = ModalRoute.of(context);
+    final isCurrentRoute = modalRoute?.isCurrent ?? true;
+    final bool isActive = isActiveFromProvider && isCurrentRoute;
 
     Log.debug(
       '📱 VideoFeedItem state: isActive=$isActive (override=${widget.isActiveOverride})',
