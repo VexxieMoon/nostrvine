@@ -138,14 +138,16 @@ class VideoErrorOverlay extends ConsumerWidget {
                           // CRITICAL: Only retry if this video is still active
                           // If user swiped away during verification, don't invalidate -
                           // the new active video's controller is already correct
+                          // NOTE: activeVideoIdProvider returns stableId (vineId ?? id),
+                          // so we must compare against video.stableId, not video.id
                           final activeVideoId = ref.read(activeVideoIdProvider);
                           Log.info(
-                            '🔐 [AGE-GATE] Checking active video: activeVideoId=$activeVideoId, thisVideoId=${video.id}, match=${activeVideoId == video.id}',
+                            '🔐 [AGE-GATE] Checking active video: activeVideoId=$activeVideoId, thisVideoStableId=${video.stableId}, match=${activeVideoId == video.stableId}',
                             name: 'VideoErrorOverlay',
                             category: LogCategory.video,
                           );
 
-                          if (activeVideoId == video.id) {
+                          if (activeVideoId == video.stableId) {
                             // Video is still active - safe to invalidate and retry
                             if (context.mounted) {
                               Log.info(
@@ -163,7 +165,7 @@ class VideoErrorOverlay extends ConsumerWidget {
                             // User swiped to different video during verification
                             // Auth headers are cached, so when user swipes back, it will work
                             Log.debug(
-                              'Age verification completed but video no longer active (active=$activeVideoId, this=${video.id})',
+                              'Age verification completed but video no longer active (active=$activeVideoId, this=${video.stableId})',
                               name: 'VideoErrorOverlay',
                               category: LogCategory.video,
                             );
