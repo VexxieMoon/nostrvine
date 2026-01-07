@@ -28,6 +28,7 @@ enum RouteType {
   following, // Following list screen
   followers, // Followers list screen
   videoFeed, // Fullscreen video feed (pushed from grids)
+  profileView, // Other user's profile (fullscreen, no bottom nav)
   curatedList, // Curated video list screen (NIP-51 kind 30005)
   sound, // Sound detail screen for audio reuse
 }
@@ -244,6 +245,13 @@ RouteContext parseRoute(String path) {
       final soundId = Uri.decodeComponent(segments[1]);
       return RouteContext(type: RouteType.sound, soundId: soundId);
 
+    case 'profile-view':
+      if (segments.length < 2) {
+        return const RouteContext(type: RouteType.home);
+      }
+      final profileViewNpub = Uri.decodeComponent(segments[1]);
+      return RouteContext(type: RouteType.profileView, npub: profileViewNpub);
+
     default:
       return const RouteContext(type: RouteType.home, videoIndex: 0);
   }
@@ -376,6 +384,10 @@ String buildRoute(RouteContext context) {
 
     case RouteType.videoFeed:
       return '/video-feed';
+
+    case RouteType.profileView:
+      final npub = Uri.encodeComponent(context.npub ?? '');
+      return '/profile-view/$npub';
     case RouteType.curatedList:
       final listId = Uri.encodeComponent(context.listId ?? '');
       return '/list/$listId';

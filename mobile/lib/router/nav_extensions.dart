@@ -224,6 +224,34 @@ extension NavX on BuildContext {
     ),
   );
 
+  /// Push other user's profile screen (fullscreen, no bottom nav)
+  ///
+  /// Use this when navigating to another user's profile from video feeds,
+  /// search results, comments, etc. For navigating to own profile, use
+  /// goProfileGrid('me') instead.
+  Future<void> pushOtherProfile(String identifier) async {
+    // Handle 'me' special case - redirect to own profile tab instead
+    if (identifier == 'me') {
+      goProfileGrid('me');
+      return;
+    }
+
+    // Get current user's hex for normalization if needed
+    final container = ProviderScope.containerOf(this, listen: false);
+    final authService = container.read(authServiceProvider);
+    final currentUserHex = authService.currentPublicKeyHex;
+
+    // Normalize any format (npub/nprofile/hex) to npub for URL
+    final npub = normalizeToNpub(identifier, currentUserHex: currentUserHex);
+    if (npub == null) {
+      // Invalid identifier - log warning and don't push
+      debugPrint('⚠️ Invalid public identifier: $identifier');
+      return;
+    }
+
+    await push('/profile-view/$npub');
+  }
+
   /// Push curated list screen (NIP-51 kind 30005 video lists)
   Future<void> pushCuratedList({
     required String listId,
