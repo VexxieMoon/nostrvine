@@ -203,21 +203,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     );
   }
 
-  void _exitFeedMode() {
-    if (!mounted) return;
-
-    // Clear the tab video list provider
-    ref.read(exploreTabVideosProvider.notifier).state = null;
-
-    // Navigate back to grid mode (no videoIndex) - URL will drive UI state
-    context.go('/explore');
-
-    Log.info(
-      '🎯 ExploreScreenPure: Exited feed mode via URL navigation',
-      category: LogCategory.video,
-    );
-  }
-
   void _enterHashtagMode(String hashtag) {
     if (!mounted) return;
 
@@ -347,13 +332,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               controller: _tabController,
               children: [
                 NewVideosTab(
-                  onVideoTap: _enterFeedMode,
                   screenAnalytics: _screenAnalytics,
                   feedTracker: _feedTracker,
                   errorTracker: _errorTracker,
                 ),
                 PopularVideosTab(
-                  onVideoTap: _enterFeedMode,
                   screenAnalytics: _screenAnalytics,
                   feedTracker: _feedTracker,
                   errorTracker: _errorTracker,
@@ -816,16 +799,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     ref.read(videoEventsProvider.notifier).disableBuffering();
   }
 
-  bool get isInFeedMode {
-    // Derive from URL instead of internal state
-    final pageContext = ref.read(pageContextProvider);
-    return pageContext.whenOrNull(
-          data: (ctx) =>
-              ctx.type == RouteType.explore && ctx.videoIndex != null,
-        ) ??
-        false;
-  }
-
   String? get currentHashtag => _hashtagMode;
   String? get customTitle => _customTitle;
 
@@ -838,22 +811,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     }
   }
 
-  void exitFeedMode() => _exitFeedMode();
-
   void showHashtagVideos(String hashtag) {
     Log.debug(
       '🎯 ExploreScreen showing hashtag videos: $hashtag',
       category: LogCategory.video,
     );
     _enterHashtagMode(hashtag);
-  }
-
-  void playSpecificVideo(VideoEvent video, List<VideoEvent> videos, int index) {
-    Log.debug(
-      '🎯 ExploreScreen playing specific video: ${video.id}',
-      category: LogCategory.video,
-    );
-    _enterFeedMode(videos, index);
   }
 
   /// Build banner that shows when new videos are buffered
