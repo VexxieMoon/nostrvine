@@ -68,6 +68,7 @@ class AuthResult {
 
   factory AuthResult.failure(String errorMessage) =>
       AuthResult(success: false, errorMessage: errorMessage);
+
   final bool success;
   final String? errorMessage;
   final SecureKeyContainer? keyContainer;
@@ -93,6 +94,7 @@ class UserProfile {
         publicKeyHex: keyContainer.publicKeyHex,
         displayName: NostrKeyUtils.maskKey(keyContainer.npub),
       );
+
   final String npub;
   final String publicKeyHex;
   final DateTime? keyCreatedAt;

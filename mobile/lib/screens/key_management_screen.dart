@@ -65,7 +65,7 @@ class _KeyManagementScreenState extends ConsumerState<KeyManagementScreen> {
               ),
             ),
           ),
-          onPressed: () => context.pop(),
+          onPressed: context.pop,
           tooltip: 'Back',
         ),
         title: Text('Nostr Keys', style: VineTheme.titleFont()),
@@ -402,7 +402,7 @@ class _KeyManagementScreenState extends ConsumerState<KeyManagementScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text(
               'Cancel',
               style: TextStyle(color: VineTheme.vineGreen),
@@ -412,7 +412,7 @@ class _KeyManagementScreenState extends ConsumerState<KeyManagementScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: VineTheme.vineGreen,
             ),
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             child: const Text('Import'),
           ),
         ],
@@ -451,7 +451,7 @@ class _KeyManagementScreenState extends ConsumerState<KeyManagementScreen> {
         );
 
         // Pop back to settings after successful import
-        Navigator.pop(context);
+        context.pop();
       }
     } catch (e) {
       if (context.mounted) {
